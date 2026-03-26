@@ -132,7 +132,7 @@ jobs:
           trivy --version
 
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@0.34.1
+        uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
           skip-setup-trivy: true
@@ -208,7 +208,7 @@ jobs:
 
       - name: Trivy image scan
         if: ${{ steps.df.outputs.found == 'true' }}
-        uses: aquasecurity/trivy-action@0.34.1
+        uses: aquasecurity/trivy-action@master
         with:
           scan-type: image
           skip-setup-trivy: true
