@@ -18,9 +18,9 @@ import java.util.Optional;
 public class RedisUserSessionRepository implements UserSessionRepository {
 
     private static final String SESSION_KEY_PREFIX = "session:";
-    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
     @Override
     public void save(UserSession session) {
