@@ -13,12 +13,42 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: update   # (팀원은 validate였음 → 개발단계라 update 유지)
     show-sql: true
     properties:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  session:
+    store-type: redis
+    timeout: 7d
+
+server:
+  port: ${SERVER_PORT:8080}
+
+openai:
+  api-key: ${GPT_API_KEY}
+  model: ${GPT_MODEL:gpt-4o}
+  vision-model: ${GPT_VISION_MODEL:gpt-4o}
+
+external:
+  hira:
+    api-key: ${HIRA_API_KEY}
+    base-url: ${HIRA_BASE_URL:http://apis.data.go.kr/B551182/MdcinGrnIdntfcInfoService01}
+  easyDrug:
+    api-key: ${EASY_DRUG_API_KEY}
+    base-url: ${EASY_DRUG_BASE_URL:http://apis.data.go.kr/1471000/DrbEasyDrugInfoService}
 
 logging:
   level:
