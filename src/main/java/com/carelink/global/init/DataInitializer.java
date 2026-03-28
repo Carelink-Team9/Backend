@@ -23,9 +23,9 @@ public class DataInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (userRepository.existsById(DEFAULT_USER_ID)) {
+        if (userRepository.count() > 0) {
             log.info("========================================");
-            log.info("기본 유저가 이미 존재합니다. (userId={})", DEFAULT_USER_ID);
+            log.info("기본 유저 또는 다른 유저가 이미 존재합니다. 초기화 스킵.");
             log.info("========================================");
             return;
         }
