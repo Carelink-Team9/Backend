@@ -1,6 +1,6 @@
 package com.carelink.user.repository;
 
-import com.carelink.user.model.UserSession;
+import com.carelink.user.entity.UserSession;
 
 import java.util.Optional;
 

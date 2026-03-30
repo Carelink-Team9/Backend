@@ -1,7 +1,7 @@
 package com.carelink.drugHistory.entity;
 
 import com.carelink.drug.entity.DrugEntity;
-import com.carelink.user.model.UserEntity;
+import com.carelink.user.entity.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
 

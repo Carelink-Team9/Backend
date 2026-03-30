@@ -1,7 +1,7 @@
 package com.carelink.prescription.repository;
 
 import com.carelink.prescription.entity.PrescriptionEntity;
-import com.carelink.user.model.UserEntity;
+import com.carelink.user.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
