@@ -1,19 +1,24 @@
 spring:
   application:
     name: carelink
+  config:
+    import: optional:file:.env[.properties]
+
   datasource:
-    url: ${DATASOURCE_URL:jdbc:mysql://localhost:3306/carelink?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul}
-    username: ${DATASOURCE_USERNAME:root}
-    password: ${DATASOURCE_PASSWORD:carelink1234}
+    url: jdbc:mysql://localhost:${MYSQL_PORT}/${MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update   # (팀원은 validate였음 → 개발단계라 update 유지)
+
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
 
   flyway:
     enabled: true
@@ -44,3 +49,8 @@ external:
   easyDrug:
     api-key: ${EASY_DRUG_API_KEY}
     base-url: ${EASY_DRUG_BASE_URL:http://apis.data.go.kr/1471000/DrbEasyDrugInfoService}
+
+logging:
+  level:
+    org:
+      springframework: info

@@ -2,7 +2,7 @@ package com.carelink.user.service;
 
 import com.carelink.global.exception.RestApiException;
 import com.carelink.global.type.ErrorCode;
-import com.carelink.user.model.UserSession;
+import com.carelink.user.entity.UserSession;
 import com.carelink.user.repository.UserSessionRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

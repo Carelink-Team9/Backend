@@ -1,4 +1,4 @@
-package com.carelink.user.model;
+package com.carelink.user.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
