@@ -24,7 +24,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RestApiException.class)
     public ResponseEntity<ApiResponse<Void>> handleCustomException(RestApiException e) {
         ErrorCode errorCode = e.getErrorCode();
-        log.error("RestApiException occurred : ErrorCode = {} message = {}",
+        log.error("커스텀 예외 발생 : 에러코드 = {}, 메시지 = {}",
                 errorCode.name(), errorCode.getDescription());
         return ResponseEntity.status(errorCode.getHttpStatus())
                 .body(ApiResponse.fail(errorCode));
@@ -33,7 +33,7 @@ public class GlobalExceptionHandler {
     // @Valid 검증 실패 — 어떤 필드가 왜 실패했는지 errors에 담아 반환
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<List<ValidationError>>> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
-        log.error("Validation failed", e);
+        log.error("유효성 검증 실패", e);
         List<ValidationError> validationErrors = e.getBindingResult().getFieldErrors()
                 .stream()
                 .map(ValidationError::of)
@@ -45,7 +45,7 @@ public class GlobalExceptionHandler {
     // 잘못된 파라미터 — 부적절한 인자 전달 시
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException e) {
-        log.error("IllegalArgumentException occurred", e);
+        log.error("잘못된 인자 전달", e);
         return ResponseEntity.status(BAD_REQUEST.getHttpStatus())
                 .body(ApiResponse.fail(BAD_REQUEST));
     }
@@ -53,7 +53,7 @@ public class GlobalExceptionHandler {
     // DB 제약 조건 위반 — unique 제약, FK 제약 등
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(DataIntegrityViolationException e) {
-        log.error("DataIntegrityViolationException occurred", e);
+        log.error("DB 제약 조건 위반", e);
         return ResponseEntity.status(BAD_REQUEST.getHttpStatus())
                 .body(ApiResponse.fail(BAD_REQUEST));
     }
@@ -61,7 +61,7 @@ public class GlobalExceptionHandler {
     // 그 외 모든 예외 — 위에서 잡히지 않은 예상치 못한 에러
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
-        log.error("Unexpected Exception occurred", e);
+        log.error("예상치 못한 예외 발생", e);
         return ResponseEntity.status(INTERNAL_SERVER_ERROR.getHttpStatus())
                 .body(ApiResponse.fail(INTERNAL_SERVER_ERROR));
     }
