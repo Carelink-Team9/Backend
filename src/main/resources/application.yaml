@@ -1,7 +1,6 @@
 spring:
   application:
     name: carelink
-
   config:
     import: optional:file:.env[.properties]
 
@@ -14,6 +13,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update   # (팀원은 validate였음 → 개발단계라 update 유지)
+
     show-sql: true
     properties:
       hibernate:
