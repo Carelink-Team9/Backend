@@ -1,7 +1,7 @@
 package com.carelink.symptom.repository;
 
 import com.carelink.symptom.entity.SymptomEntity;
-import com.carelink.user.entity.UserEntity;
+import com.carelink.user.model.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

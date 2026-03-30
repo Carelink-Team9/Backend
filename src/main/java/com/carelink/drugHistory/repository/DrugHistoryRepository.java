@@ -2,7 +2,7 @@ package com.carelink.drugHistory.repository;
 
 import com.carelink.drug.entity.DrugEntity;
 import com.carelink.drugHistory.entity.DrugHistoryEntity;
-import com.carelink.user.entity.UserEntity;
+import com.carelink.user.model.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

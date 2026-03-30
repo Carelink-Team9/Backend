@@ -2,7 +2,7 @@ package com.carelink.communityPost.repository;
 
 import com.carelink.communityPost.entity.CommunityPostCategory;
 import com.carelink.communityPost.entity.CommunityPostEntity;
-import com.carelink.user.entity.UserEntity;
+import com.carelink.user.model.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

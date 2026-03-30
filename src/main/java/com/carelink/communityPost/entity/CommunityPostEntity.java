@@ -1,7 +1,7 @@
 package com.carelink.communityPost.entity;
 
 import com.carelink.comment.entity.CommentEntity;
-import com.carelink.user.entity.UserEntity;
+import com.carelink.user.model.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

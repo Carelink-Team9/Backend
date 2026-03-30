@@ -3,7 +3,7 @@ package com.carelink.prescription.entity;
 import com.carelink.prescriptiondrug.entity.PrescriptionDrugEntity;
 import com.carelink.prescriptionImage.entity.PrescriptionImageEntity;
 import com.carelink.translationHistory.entity.TranslationHistoryEntity;
-import com.carelink.user.entity.UserEntity;
+import com.carelink.user.model.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
