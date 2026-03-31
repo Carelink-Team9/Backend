@@ -35,7 +35,6 @@ class UserServiceTest {
 
         UserEntity savedUser = UserEntity.builder()
                 .name("홍길동")
-                .nationality("한국")
                 .language("ko")
                 .build();
         setUserId(savedUser, 1L);
