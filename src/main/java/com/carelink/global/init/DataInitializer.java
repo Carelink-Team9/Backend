@@ -1,7 +1,7 @@
 package com.carelink.global.init;
 
-import com.carelink.user.model.UserEntity;
-import com.carelink.user.model.UserSession;
+import com.carelink.user.entity.UserEntity;
+import com.carelink.user.entity.UserSession;
 import com.carelink.user.repository.UserRepository;
 import com.carelink.user.service.UserSessionService;
 import lombok.RequiredArgsConstructor;

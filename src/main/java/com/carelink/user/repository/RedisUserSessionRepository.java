@@ -2,7 +2,7 @@ package com.carelink.user.repository;
 
 import com.carelink.global.exception.RestApiException;
 import com.carelink.global.type.ErrorCode;
-import com.carelink.user.model.UserSession;
+import com.carelink.user.entity.UserSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Repository;

@@ -1,8 +1,8 @@
 package com.carelink.user.service;
 
-import com.carelink.user.model.UserEntity;
-import com.carelink.user.model.UserSession;
-import com.carelink.user.model.dto.UserCreateRequest;
+import com.carelink.user.entity.UserEntity;
+import com.carelink.user.entity.UserSession;
+import com.carelink.user.entity.dto.UserCreateRequest;
 import com.carelink.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

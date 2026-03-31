@@ -1,6 +1,6 @@
-package com.carelink.user.model.dto;
+package com.carelink.user.entity.dto;
 
-import com.carelink.user.model.UserSession;
+import com.carelink.user.entity.UserSession;
 import lombok.Getter;
 
 import java.time.LocalDateTime;

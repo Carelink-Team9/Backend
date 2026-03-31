@@ -1,19 +1,19 @@
-package com.carelink.user.model;
+package com.carelink.user.entity;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
 
+@Setter
+@AllArgsConstructor
+@Builder
 @Entity
 @Table(name = "user")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 public class UserEntity {
 
     @Id
@@ -27,11 +27,11 @@ public class UserEntity {
     @Column(nullable = false, length = 20)
     private String language;
 
-    @CreationTimestamp
+    @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
+    @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 

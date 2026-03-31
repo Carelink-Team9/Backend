@@ -1,4 +1,4 @@
-package com.carelink.user.model.dto;
+package com.carelink.user.entity.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
