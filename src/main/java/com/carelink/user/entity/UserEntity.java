@@ -24,10 +24,7 @@ public class UserEntity {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false, length = 25)
-    private String nationality;
-
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 20)
     private String language;
 
     @CreatedDate
@@ -39,9 +36,8 @@ public class UserEntity {
     private LocalDateTime updatedAt;
 
     @Builder
-    public UserEntity(String name, String nationality, String language) {
+    public UserEntity(String name, String language) {
         this.name = name;
-        this.nationality = nationality;
         this.language = language;
     }
 }

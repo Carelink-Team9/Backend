@@ -32,7 +32,6 @@ public class DataInitializer implements ApplicationRunner {
 
         UserEntity defaultUser = UserEntity.builder()
                 .name("테스트유저")
-                .nationality("한국")
                 .language("ko")
                 .build();
         UserEntity savedUser = userRepository.save(defaultUser);

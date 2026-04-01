@@ -20,7 +20,6 @@ public class UserService {
     public UserSession registerAndCreateSession(UserCreateRequest request) {
         UserEntity user = UserEntity.builder()
                 .name(request.getName())
-                .nationality(request.getNationality())
                 .language(request.getLanguage())
                 .build();
 
