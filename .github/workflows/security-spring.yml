@@ -1,0 +1,272 @@
+name: Security – Spring Backend (SAST & SCA)
+
+on:
+  pull_request:
+    branches: [ main, dev ]
+  push:
+    branches: [ main, dev ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install jq (for SARIF checks)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq
+
+      # ──────────────────────────────
+      # Semgrep (SAST - 소스코드 취약점 분석)
+      # ──────────────────────────────
+      - name: Set up Python (for Semgrep CLI)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Semgrep
+        run: |
+          python -m pip install --upgrade pip
+          pip install semgrep
+
+      - name: Run Semgrep (OWASP + Java) → SARIF
+        run: |
+          set -euo pipefail
+          semgrep --version
+          semgrep ci \
+            --config p/owasp-top-ten \
+            --config p/java \
+            --sarif -o semgrep.sarif || true
+
+      - name: Check Semgrep SARIF has results
+        id: semgrep_sarif_check
+        run: |
+          if [ ! -s semgrep.sarif ]; then
+            echo "ok=false" >> $GITHUB_OUTPUT; exit 0
+          fi
+          runs=$(jq '.runs | length' semgrep.sarif 2>/dev/null || echo 0)
+          results=$(jq '[.runs[].results] | flatten | length' semgrep.sarif 2>/dev/null || echo 0)
+          if [ "$runs" -gt 0 ] && [ "$results" -gt 0 ]; then echo "ok=true" >> $GITHUB_OUTPUT; else echo "ok=false" >> $GITHUB_OUTPUT; fi
+
+      - name: Upload Semgrep SARIF
+        if: ${{ steps.semgrep_sarif_check.outputs.ok == 'true' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+
+      # ──────────────────────────────
+      # Java build (Gradle 자동 세팅)
+      # ──────────────────────────────
+      - name: Setup Temurin JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build (Gradle)
+        run: ./gradlew build -x test
+
+      # ──────────────────────────────
+      # Dependency-Check (Java 라이브러리 취약점 분석)
+      # ──────────────────────────────
+      - name: OWASP Dependency-Check → SARIF
+        uses: dependency-check/Dependency-Check_Action@main
+        env:
+          JAVA_HOME: /opt/jdk
+        with:
+          project: ${{ github.repository }}
+          path: .
+          format: 'SARIF'
+          out: 'dependency-check-report'
+          args: >
+            --noupdate
+            --disableCentral
+            --disableNodeJS --disableNodeAudit --disableYarnAudit --disablePnpmAudit --disableRetireJS
+            --enableRetired
+            --failOnCVSS 11
+            --suppression .github/dependency-check-suppressions.xml
+            --log dependency-check-report/odc.log
+        continue-on-error: true
+
+      - name: Upload Dependency-Check SARIF
+        if: ${{ hashFiles('dependency-check-report/dependency-check-report.sarif') != '' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: dependency-check-report/dependency-check-report.sarif
+
+      - name: Upload Dependency-Check log (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-log
+          path: dependency-check-report/odc.log
+
+      # ──────────────────────────────
+      # Trivy (파일시스템 및 오픈소스 취약점 스캔)
+      # ──────────────────────────────
+      - name: Install Trivy
+        run: |
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
+            | gpg --dearmor \
+            | sudo tee /etc/apt/trusted.gpg.d/trivy.gpg > /dev/null
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" \
+            | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update -qq && sudo apt-get install -y trivy
+          trivy --version
+
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          skip-setup-trivy: true
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          format: sarif
+          output: trivy-fs.sarif
+          exit-code: '0'
+
+      - name: Check Trivy FS SARIF has results
+        id: trivyfs_sarif_check
+        run: |
+          if [ ! -s trivy-fs.sarif ]; then
+            echo "ok=false" >> $GITHUB_OUTPUT; exit 0
+          fi
+          runs=$(jq '.runs | length' trivy-fs.sarif 2>/dev/null || echo 0)
+          results=$(jq '[.runs[].results] | flatten | length' trivy-fs.sarif 2>/dev/null || echo 0)
+          if [ "$runs" -gt 0 ] && [ "$results" -gt 0 ]; then echo "ok=true" >> $GITHUB_OUTPUT; else echo "ok=false" >> $GITHUB_OUTPUT; fi
+
+      - name: Upload Trivy FS SARIF
+        if: ${{ steps.trivyfs_sarif_check.outputs.ok == 'true' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+
+      # ──────────────────────────────
+      # Hadolint (Dockerfile 린트)
+      # ──────────────────────────────
+      - name: Locate Dockerfile(s)
+        id: df
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find . -type f \( -iname "dockerfile" -o -iname "*.dockerfile" \) | sort || true)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "found=false" >> $GITHUB_OUTPUT
+            echo "count=0"     >> $GITHUB_OUTPUT
+            echo "No Dockerfile found. Skipping hadolint."
+            exit 0
+          fi
+          printf '%s\n' "${files[@]}" > dockerfiles.list
+          echo "found=true"         >> $GITHUB_OUTPUT
+          echo "count=${#files[@]}" >> $GITHUB_OUTPUT
+
+      - name: Run hadolint (container CLI)
+        if: ${{ steps.df.outputs.found == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < dockerfiles.list
+          echo "Linting: ${files[*]}"
+          docker run --rm -v "$PWD":/work -w /work hadolint/hadolint:latest \
+            hadolint --format sarif "${files[@]}" > hadolint.sarif || true
+          test -s hadolint.sarif || echo '{"version":"2.1.0","runs":[]}' > hadolint.sarif
+          ls -l hadolint.sarif
+
+      - name: Upload Hadolint SARIF
+        if: ${{ steps.df.outputs.found == 'true' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: hadolint.sarif
+
+      # ──────────────────────────────
+      # Build local image → Trivy image scan (도커 이미지 취약점)
+      # ──────────────────────────────
+      - name: Build image (local only)
+        if: ${{ steps.df.outputs.found == 'true' }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: local/carelink-back:secscan
+
+      - name: Trivy image scan
+        if: ${{ steps.df.outputs.found == 'true' }}
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: image
+          skip-setup-trivy: true
+          image-ref: local/carelink-back:secscan
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          format: sarif
+          output: trivy-image.sarif
+          exit-code: '0'
+
+      - name: Check Trivy IMG SARIF has results
+        if: ${{ steps.df.outputs.found == 'true' }}
+        id: trivyimg_sarif_check
+        run: |
+          if [ ! -s trivy-image.sarif ]; then
+            echo "ok=false" >> $GITHUB_OUTPUT; exit 0
+          fi
+          runs=$(jq '.runs | length' trivy-image.sarif 2>/dev/null || echo 0)
+          results=$(jq '[.runs[].results] | flatten | length' trivy-image.sarif 2>/dev/null || echo 0)
+          if [ "$runs" -gt 0 ] && [ "$results" -gt 0 ]; then echo "ok=true" >> $GITHUB_OUTPUT; else echo "ok=false" >> $GITHUB_OUTPUT; fi
+
+      - name: Upload Trivy IMG SARIF
+        if: ${{ steps.df.outputs.found == 'true' && steps.trivyimg_sarif_check.outputs.ok == 'true' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif
+
+      # ──────────────────────────────
+      # Gitleaks (Secrets 스캔 - 하드코딩된 비밀번호 방지)
+      # ──────────────────────────────
+      - name: Run Gitleaks (secrets scan) → SARIF
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD":/repo ghcr.io/gitleaks/gitleaks:v8.18.4 detect \
+            --source=/repo \
+            --redact \
+            --report-format sarif \
+            --report-path /repo/gitleaks.sarif \
+            --exit-code 0
+          test -s gitleaks.sarif || echo '{"version":"2.1.0","runs":[]}' > gitleaks.sarif
+          ls -l gitleaks.sarif
+
+      - name: Check Gitleaks SARIF has results
+        id: gitleaks_sarif_check
+        run: |
+          if [ ! -s gitleaks.sarif ]; then
+            echo "ok=false" >> $GITHUB_OUTPUT; exit 0
+          fi
+          runs=$(jq '.runs | length' gitleaks.sarif 2>/dev/null || echo 0)
+          results=$(jq '[.runs[].results] | flatten | length' gitleaks.sarif 2>/dev/null || echo 0)
+          if [ "$runs" -gt 0 ] && [ "$results" -gt 0 ]; then echo "ok=true" >> $GITHUB_OUTPUT; else echo "ok=false" >> $GITHUB_OUTPUT; fi
+
+      - name: Upload Gitleaks SARIF
+        if: ${{ steps.gitleaks_sarif_check.outputs.ok == 'true' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gitleaks.sarif

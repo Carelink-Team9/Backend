@@ -1,3 +1,57 @@
 spring:
   application:
     name: carelink
+  config:
+    import: optional:file:.env[.properties]
+
+  datasource:
+    url: jdbc:mysql://localhost:${MYSQL_PORT}/${MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update   # (팀원은 validate였음 → 개발단계라 update 유지)
+
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  session:
+    store-type: redis
+    timeout: 7d
+
+server:
+  port: ${SERVER_PORT:8080}
+
+openai:
+  api-key: ${GPT_API_KEY}
+  model: ${GPT_MODEL:gpt-4o}
+  vision-model: ${GPT_VISION_MODEL:gpt-4o}
+
+external:
+  hira:
+    api-key: ${HIRA_API_KEY}
+    base-url: ${HIRA_BASE_URL:http://apis.data.go.kr/B551182/MdcinGrnIdntfcInfoService01}
+  easyDrug:
+    api-key: ${EASY_DRUG_API_KEY}
+    base-url: ${EASY_DRUG_BASE_URL:http://apis.data.go.kr/1471000/DrbEasyDrugInfoService}
+
+logging:
+  level:
+    org:
+      springframework: info
