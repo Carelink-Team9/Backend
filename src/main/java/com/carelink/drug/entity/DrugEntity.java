@@ -23,10 +23,19 @@ public class DrugEntity {
     @Column(name = "drug_id")
     private Long drugId;
 
-    private String name;
+    @Column(name = "item_seq", unique = true, nullable = false, length = 50)
+    private String itemSeq;
 
     @Column(columnDefinition = "TEXT")
-    private String description;
+    private String name;
+
+    //상호작용
+    @Column(name = "intrc_qesitm", columnDefinition = "TEXT")
+    private String intrcQesitm;
+
+    //부작용
+    @Column(name = "se_qesitm", columnDefinition = "TEXT")
+    private String seQesitm;
 
     @Column(columnDefinition = "TEXT")
     private String efficacy;
@@ -39,6 +48,4 @@ public class DrugEntity {
 
     @Column(name = "opened_at")
     private LocalDateTime openedAt;
-
-
 }
