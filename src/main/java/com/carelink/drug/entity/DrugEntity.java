@@ -1,13 +1,8 @@
 package com.carelink.drug.entity;
 
-import com.carelink.drugHistory.entity.DrugHistoryEntity;
-import com.carelink.prescriptiondrug.entity.PrescriptionDrugEntity;
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Getter
 @Setter
@@ -23,29 +18,35 @@ public class DrugEntity {
     @Column(name = "drug_id")
     private Long drugId;
 
-    @Column(name = "item_seq", unique = true, nullable = false, length = 50)
+    // 1. item_seq (품목기준코드)
+    @Column(name = "item_seq", unique = true, nullable = false)
     private String itemSeq;
 
+    // 2. name (약 이름)
     @Column(columnDefinition = "TEXT")
     private String name;
 
-    //상호작용
-    @Column(name = "intrc_qesitm", columnDefinition = "TEXT")
-    private String intrcQesitm;
-
-    //부작용
-    @Column(name = "se_qesitm", columnDefinition = "TEXT")
-    private String seQesitm;
-
+    // 3. efficacy (효능)
     @Column(columnDefinition = "TEXT")
     private String efficacy;
 
+    // 4. caution (주의사항)
     @Column(columnDefinition = "TEXT")
     private String caution;
 
+    // 5. use_method (사용방법)
     @Column(name = "use_method", columnDefinition = "TEXT")
     private String useMethod;
 
+    // 6. intrc_qesitm (상호작용)
+    @Column(name = "intrc_qesitm", columnDefinition = "TEXT")
+    private String intrcQesitm;
+
+    // 7. se_qesitm (부작용)
+    @Column(name = "se_qesitm", columnDefinition = "TEXT")
+    private String seQesitm;
+
+    // 8. opened_at (공개일자)
     @Column(name = "opened_at")
     private LocalDateTime openedAt;
 }
