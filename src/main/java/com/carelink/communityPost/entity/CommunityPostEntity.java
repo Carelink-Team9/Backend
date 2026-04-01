@@ -35,6 +35,9 @@ public class CommunityPostEntity {
     @Column(name = "translated_content", columnDefinition = "json")
     private String translatedContent;
 
+    @Column(name = "translated_title", columnDefinition = "json")
+    private String translatedTitle;
+
     private String language;
 
     @CreatedDate
