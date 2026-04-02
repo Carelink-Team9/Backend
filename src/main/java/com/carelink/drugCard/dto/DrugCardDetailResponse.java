@@ -7,7 +7,7 @@ import lombok.Setter;
 
 @Getter
 @Builder
-@Setter // 踰덉뿭 寃곌낵瑜?二쇱엯?섍린 ?꾪빐 異붽?
+@Setter // 번역 결과를 업데이트하기 위해 추가
 public class DrugCardDetailResponse {
 
     private Long prescriptionDrugId;
@@ -42,7 +42,7 @@ public class DrugCardDetailResponse {
                 .build();
     }
 
-    // 踰덉뿭 寃곌낵濡??꾨뱶?ㅼ쓣 ?낅뜲?댄듃?섎뒗 硫붿꽌??
+    // 번역 결과로 필드를 업데이트하는 메서드
     public void updateTranslations(String efficacy, String caution, String useMethod) {
         this.efficacy = efficacy;
         this.caution = caution;
