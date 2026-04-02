@@ -28,7 +28,7 @@ public class HospitalService {
                         lng - lngDelta, lng + lngDelta,
                         radiusKm, limit)
                 .stream()
-                .map(HospitalNearbyResponse::from)
+                .map(HospitalNearbyResponse::fromRow)
                 .toList();
     }
 }

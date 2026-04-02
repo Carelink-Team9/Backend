@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
+
 public interface HospitalRepository extends JpaRepository<HospitalEntity, Long> {
     Optional<HospitalEntity> findByHospitalId(Long hospitalId);
     List<HospitalEntity> findByNameContaining(String name);
@@ -27,7 +28,7 @@ public interface HospitalRepository extends JpaRepository<HospitalEntity, Long> 
             ORDER BY distance
             LIMIT :lim
             """, nativeQuery = true)
-    List<HospitalDistanceProjection> findNearbyHospitals(
+    List<Object[]> findNearbyHospitals(
             @Param("lat")      double lat,
             @Param("lng")      double lng,
             @Param("minLat")   double minLat,
