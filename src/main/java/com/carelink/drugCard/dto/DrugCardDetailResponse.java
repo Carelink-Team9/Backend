@@ -3,12 +3,14 @@ package com.carelink.drugCard.dto;
 import com.carelink.prescriptionDrug.entity.PrescriptionDrugEntity;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Builder
+@Setter // 번역 결과를 업데이트하기 위해 추가
 public class DrugCardDetailResponse {
 
-    private Long prescriptionDrugId; // String -> Long으로 수정
+    private Long prescriptionDrugId;
     private Long drugId;
     private String itemSeq;
     private String drugName;
@@ -24,7 +26,7 @@ public class DrugCardDetailResponse {
 
     public static DrugCardDetailResponse from(PrescriptionDrugEntity prescriptionDrug) {
         return DrugCardDetailResponse.builder()
-                .prescriptionDrugId(prescriptionDrug.getPrescriptionDrugId()) // 이제 타입이 호환됩니다.
+                .prescriptionDrugId(prescriptionDrug.getPrescriptionDrugId())
                 .drugId(prescriptionDrug.getDrug().getDrugId())
                 .itemSeq(prescriptionDrug.getDrug().getItemSeq())
                 .drugName(prescriptionDrug.getDrug().getName())
@@ -39,4 +41,12 @@ public class DrugCardDetailResponse {
                 .translatedContent(prescriptionDrug.getTranslatedContent())
                 .build();
     }
+
+    // 번역 결과로 필드를 업데이트하는 메서드
+    public void updateTranslations(String efficacy, String caution, String useMethod) {
+        this.efficacy = efficacy;
+        this.caution = caution;
+        this.useMethod = useMethod;
+    }
 }
+

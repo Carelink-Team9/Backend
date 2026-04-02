@@ -1,6 +1,7 @@
 spring:
   application:
     name: carelink
+
   config:
     import: optional:file:.env[.properties]
 
@@ -12,8 +13,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update   # (팀원은 validate였음 → 개발단계라 update 유지)
-
+      ddl-auto: update   # 개발단계
     show-sql: true
     properties:
       hibernate:
@@ -35,13 +35,21 @@ spring:
     store-type: redis
     timeout: 7d
 
+  mvc:
+    static-path-pattern: /uploads/**
+
+  web:
+    resources:
+      static-locations: file:./uploads/
+
 server:
   port: ${SERVER_PORT:8080}
 
 openai:
   api-key: ${GPT_API_KEY}
-  model: ${GPT_MODEL:gpt-4o}
-  vision-model: ${GPT_VISION_MODEL:gpt-4o}
+  model: ${GPT_MODEL:gpt-4o-mini}
+  vision-model: ${GPT_VISION_MODEL:gpt-4o-mini}
+  base-url: https://api.openai.com/v1/chat/completions
 
 external:
   hira:
@@ -50,6 +58,9 @@ external:
   easyDrug:
     api-key: ${EASY_DRUG_API_KEY}
     base-url: ${EASY_DRUG_BASE_URL:http://apis.data.go.kr/1471000/DrbEasyDrugInfoService}
+
+file:
+  upload-dir: ./uploads/prescriptions/
 
 logging:
   level:

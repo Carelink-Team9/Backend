@@ -6,6 +6,7 @@ import com.carelink.global.type.ErrorCode;
 import com.carelink.global.type.ResponseMessage;
 import com.carelink.global.util.SessionCookieManager;
 import com.carelink.user.entity.UserSession;
+import com.carelink.user.entity.dto.LoginRequest;
 import com.carelink.user.entity.dto.SessionCreateResponse;
 import com.carelink.user.entity.dto.UserCreateRequest;
 import com.carelink.user.service.UserService;
@@ -60,5 +61,21 @@ public class UserController {
     private String extractSessionId(HttpServletRequest request) {
         return sessionCookieManager.extract(request)
                 .orElseThrow(() -> new RestApiException(ErrorCode.SESSION_NOT_FOUND));
+    }
+
+
+    // UserController.java 에 추가
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<SessionCreateResponse>> login(
+            @RequestBody @Valid LoginRequest loginRequest, // 아래 DTO 생성 필요
+            HttpServletResponse response
+    ) {
+        // 1. 이름으로 유저를 찾고 세션을 생성 (Service 로직)
+        UserSession session = userService.loginAndCreateSession(loginRequest.getName());
+
+        // 2. 쿠키에 세션 ID 심기
+        sessionCookieManager.set(response, session.getSessionId());
+
+        return ResponseEntity.ok(ApiResponse.ok(SessionCreateResponse.from(session)));
     }
 }
