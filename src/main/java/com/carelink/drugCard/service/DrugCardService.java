@@ -39,7 +39,7 @@ public class DrugCardService {
     }
 
     public DrugCardDetailResponse getDrugCard(Long userId, Long prescriptionId, String prescriptionDrugId, boolean translate) {
-        // 1. 湲곕낯 議고쉶 諛?寃利?
+        // 기본 조회 및 검증
         PrescriptionDrugEntity prescriptionDrug = prescriptionDrugRepository.findByIdWithDrugAndPrescription(prescriptionDrugId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.DRUG_CARD_NOT_FOUND));
 
@@ -51,10 +51,10 @@ public class DrugCardService {
             throw new RestApiException(ErrorCode.FORBIDDEN);
         }
 
-        // 2. 湲곕낯 ?쒓뎅???곗씠??湲곕컲 Response ?앹꽦
+        // 기본 응답 데이터 기준 Response 생성
         DrugCardDetailResponse response = DrugCardDetailResponse.from(prescriptionDrug);
 
-        // 3. 踰덉뿭 踰꾪듉???뚮????뚮쭔(translate=true) GPT ?몄텧
+        // 번역 버튼이 눌렸을 때(translate=true) GPT 호출
         if (translate) {
             UserEntity user = userRepository.findById(userId)
                     .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
@@ -62,14 +62,14 @@ public class DrugCardService {
             String targetLang = user.getLanguage();
 
             try {
-                // 鍮꾩슜 諛쒖깮 吏?? ?꾩슂???꾨뱶留?踰덉뿭
+                // 효능, 주의사항, 사용방법만 번역
                 String tEfficacy = openAIService.translate(response.getEfficacy(), targetLang);
                 String tCaution = openAIService.translate(response.getCaution(), targetLang);
                 String tUseMethod = openAIService.translate(response.getUseMethod(), targetLang);
 
                 response.updateTranslations(tEfficacy, tCaution, tUseMethod);
             } catch (Exception e) {
-                log.error("GPT 踰덉뿭 ?ㅽ뙣: {}. ?먮낯 ?곗씠?곕? 諛섑솚?⑸땲??", e.getMessage());
+                log.error("GPT 번역 실패: {}. 원본 데이터로 반환합니다.", e.getMessage());
             }
         }
 
