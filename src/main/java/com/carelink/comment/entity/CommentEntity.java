@@ -32,11 +32,14 @@ public class CommentEntity {
     @JoinColumn(name = "community_post_id")
     private CommunityPostEntity communityPost;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "translated_content", columnDefinition = "TEXT")
     private String translatedContent;
+
+    @Column(nullable = false)
+    private String language;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)
