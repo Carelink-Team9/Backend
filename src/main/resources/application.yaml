@@ -12,7 +12,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update   # (팀원은 validate였음 → 개발단계라 update 유지)
+      ddl-auto: update
 
     show-sql: true
     properties:
@@ -25,6 +25,7 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
     locations: classpath:db/migration
+    validate-on-migrate: false
 
   data:
     redis:

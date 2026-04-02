@@ -36,4 +36,6 @@ public class HospitalEntity {
 
     @Column(name = "sggu_nm")
     private String sgguNm;
+
+    private String homepage;
 }

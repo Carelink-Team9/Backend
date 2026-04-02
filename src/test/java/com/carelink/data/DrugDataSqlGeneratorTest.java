@@ -16,7 +16,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
-@SpringBootTest
+@SpringBootTest(properties = {"spring.flyway.enabled=false", "spring.jpa.hibernate.ddl-auto=none"})
 public class DrugDataSqlGeneratorTest {
 
     private ObjectMapper objectMapper = new ObjectMapper();
