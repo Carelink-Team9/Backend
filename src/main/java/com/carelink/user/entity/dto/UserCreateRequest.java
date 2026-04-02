@@ -15,10 +15,6 @@ public class UserCreateRequest {
     private String name;
 
     @NotBlank
-    @Size(max = 25)
-    private String nationality;
-
-    @NotBlank
     @Size(max = 10)
     private String language;
 }

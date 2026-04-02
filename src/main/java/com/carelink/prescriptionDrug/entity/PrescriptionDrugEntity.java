@@ -1,4 +1,4 @@
-package com.carelink.prescriptiondrug.entity;
+package com.carelink.prescriptionDrug.entity;
 
 import com.carelink.drug.entity.DrugEntity;
 import com.carelink.prescription.entity.PrescriptionEntity;
@@ -15,8 +15,9 @@ import lombok.*;
 public class PrescriptionDrugEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "prescription_drug_id", length = 100)
-    private String prescriptionDrugId;
+    private Long prescriptionDrugId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "prescription_id")

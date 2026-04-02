@@ -1,5 +1,6 @@
 package com.carelink.communityPost.entity;
 
+import com.carelink.communityPost.entity.*;
 import com.carelink.user.entity.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -47,8 +48,8 @@ public class CommunityPostEntity {
     private String tag;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private com.carelink.communityPost.entity.CommunityPostCategory category;
 
+    @Column(nullable = false)
+    private CommunityPostCategory category;
 
 }
