@@ -41,3 +41,5 @@ out/
 docker-compose.yml
 src/main/resources/application.yml
 Dockerfile
+
+.gradle-user-home
