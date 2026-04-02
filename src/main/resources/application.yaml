@@ -40,8 +40,9 @@ server:
 
 openai:
   api-key: ${GPT_API_KEY}
-  model: ${GPT_MODEL:gpt-4o}
-  vision-model: ${GPT_VISION_MODEL:gpt-4o}
+  model: ${GPT_MODEL:gpt-4o-mini}
+  vision-model: ${GPT_VISION_MODEL:gpt-4o-mini}
+  base-url: https://api.openai.com/v1/chat/completions
 
 external:
   hira:
