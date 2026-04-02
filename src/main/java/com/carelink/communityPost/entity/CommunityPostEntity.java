@@ -24,27 +24,30 @@ public class CommunityPostEntity {
     private Long communityPostId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
+    @Column(nullable = false)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "translated_content", columnDefinition = "json")
     private String translatedContent;
 
+    @Column(nullable = false)
     private String language;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "tag", columnDefinition = "json")
+    @Column(name = "tag")
     private String tag;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private com.carelink.communityPost.entity.CommunityPostCategory category;
 
 

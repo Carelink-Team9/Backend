@@ -43,6 +43,12 @@ openai:
   model: ${GPT_MODEL:gpt-4o}
   vision-model: ${GPT_VISION_MODEL:gpt-4o}
 
+gemini:
+  api-key: ${GEMINI_API_KEY}
+  model: ${GEMINI_MODEL:gemini-2.5-flash}
+  base-url: https://generativelanguage.googleapis.com
+
+
 external:
   hira:
     api-key: ${HIRA_API_KEY}
