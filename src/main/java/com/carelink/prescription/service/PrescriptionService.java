@@ -1,15 +1,20 @@
 package com.carelink.prescription.service;
 
-import com.carelink.drug.entity.DrugEntity;
 import com.carelink.drug.repository.DrugRepository;
+import com.carelink.prescription.dto.PrescriptionResponse;
 import com.carelink.prescription.entity.PrescriptionEntity;
 import com.carelink.prescription.repository.PrescriptionRepository;
 import com.carelink.prescriptionDrug.entity.PrescriptionDrugEntity;
 import com.carelink.prescriptionDrug.repository.PrescriptionDrugRepository;
 import com.carelink.prescriptionImage.entity.PrescriptionImageEntity;
 import com.carelink.prescriptionImage.repository.PrescriptionImageRepository;
+import com.carelink.translationHistory.entity.TranslationHistoryEntity;
+import com.carelink.translationHistory.repository.TranslationHistoryRepository;
+import com.carelink.translationHistory.entity.TranslationStatus;
+import com.carelink.global.infra.openai.service.OpenAIService;
 import com.carelink.user.entity.UserEntity;
 import com.carelink.user.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -18,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.file.*;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -27,8 +33,11 @@ public class PrescriptionService {
     private final PrescriptionRepository prescriptionRepository;
     private final PrescriptionImageRepository prescriptionImageRepository;
     private final PrescriptionDrugRepository prescriptionDrugRepository;
+    private final TranslationHistoryRepository translationHistoryRepository;
     private final UserRepository userRepository;
-    private final DrugRepository drugRepository; // 약 데이터 조회를 위해 필요
+    private final DrugRepository drugRepository;
+    private final OpenAIService openAIService;
+    private final ObjectMapper objectMapper; // JSON 변환용
 
     @Value("${file.upload-dir}")
     private String uploadDir;
@@ -50,38 +59,74 @@ public class PrescriptionService {
             throw new RuntimeException("파일 저장 실패", ex);
         }
 
-        // 3. Prescription 엔티티 생성
-        PrescriptionEntity prescription = PrescriptionEntity.builder()
-                .user(user)
-                .build();
-        prescriptionRepository.save(prescription);
+        // 3. 엔티티 생성
+        PrescriptionEntity prescription = prescriptionRepository.save(
+                PrescriptionEntity.builder().user(user).build()
+        );
 
-        // 4. PrescriptionImage 엔티티 생성 (URL 저장)
         String imageUrl = "/uploads/prescriptions/" + fileName;
-        PrescriptionImageEntity imageEntity = PrescriptionImageEntity.builder()
+        prescriptionImageRepository.save(PrescriptionImageEntity.builder()
                 .prescription(prescription)
                 .imageUrl(imageUrl)
-                .build();
-        prescriptionImageRepository.save(imageEntity);
+                .build());
 
-        // 5. [임시] GPT Vision 파싱 결과 Mock 데이터 (나중에 OpenAIService 호출로 교체)
-        // 실제로는 Vision이 "201502206"(item_seq) 또는 약 이름을 줍니다.
-        createMockPrescriptionDrugs(prescription);
+        // 4. GPT Vision 분석 호출 (사용자의 모국어 설정 반영)
+        List<OpenAIService.ParsedDrug> parsedDrugs = openAIService.parsePrescriptionImage(imageUrl, user.getLanguage());
+
+        // 5. TranslationHistory에 분석 원문(JSON) 저장
+        saveTranslationHistory(prescription, user.getLanguage(), parsedDrugs);
+
+        // 6. 분석 결과를 DB 약 데이터와 매핑하여 저장
+        for (OpenAIService.ParsedDrug parsed : parsedDrugs) {
+            drugRepository.findByNameContaining(parsed.drugName()).stream().findFirst().ifPresent(drug -> {
+                prescriptionDrugRepository.save(PrescriptionDrugEntity.builder()
+                        .prescription(prescription)
+                        .drug(drug)
+                        .dosage(parsed.dosage())
+                        .frequency(parsed.frequency())
+                        .duration(parsed.duration())
+                        .translatedContent(parsed.translatedContent()) // 다국어 복용 가이드
+                        .build());
+            });
+        }
 
         return prescription.getPrescriptionId();
     }
 
-    private void createMockPrescriptionDrugs(PrescriptionEntity prescription) {
-        // 테스트용: DB에 존재하는 약 하나를 조회해서 매핑 (item_seq '201502206' 가정)
-        drugRepository.findByItemSeq("201502206").ifPresent(drug -> {
-            PrescriptionDrugEntity drugEntity = PrescriptionDrugEntity.builder()
+    @Transactional(readOnly = true)
+    public PrescriptionResponse getPrescriptionDetails(Long userId, Long prescriptionId) {
+        PrescriptionEntity prescription = prescriptionRepository.findById(prescriptionId)
+                .orElseThrow(() -> new RuntimeException("Prescription not found"));
+
+        if (!prescription.getUser().getUserId().equals(userId)) {
+            throw new RuntimeException("Access Denied");
+        }
+
+        List<PrescriptionResponse.DrugDetailDto> drugs = prescriptionDrugRepository.findByPrescription(prescription)
+                .stream()
+                .map(pd -> new PrescriptionResponse.DrugDetailDto(
+                        pd.getDrug().getName(),
+                        pd.getDosage(),
+                        pd.getFrequency(),
+                        pd.getDuration(),
+                        pd.getTranslatedContent()
+                )).toList();
+
+        return new PrescriptionResponse(prescriptionId, prescription.getCreatedAt(), drugs);
+    }
+
+    private void saveTranslationHistory(PrescriptionEntity prescription, String lang, List<OpenAIService.ParsedDrug> data) {
+        try {
+            String jsonContent = objectMapper.writeValueAsString(data);
+            translationHistoryRepository.save(TranslationHistoryEntity.builder()
                     .prescription(prescription)
-                    .drug(drug)
-                    .dosage("1정")
-                    .frequency("1일 3회")
-                    .duration("3일")
-                    .build();
-            prescriptionDrugRepository.save(drugEntity);
-        });
+                    .languageCode(lang)
+                    .sourceContent("AI Prescription Analysis")
+                    .translatedContent(jsonContent)
+                    .status(TranslationStatus.SUCCESS)
+                    .build());
+        } catch (Exception e) {
+            // 히스토리 저장 실패가 핵심 로직을 방해하지 않도록 처리
+        }
     }
 }

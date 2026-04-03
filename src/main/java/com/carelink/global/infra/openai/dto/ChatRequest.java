@@ -3,7 +3,6 @@ package com.carelink.global.infra.openai.dto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
 import java.util.List;
 
 @Getter
@@ -18,6 +17,6 @@ public class ChatRequest {
     @AllArgsConstructor
     public static class Message {
         private String role;
-        private String content;
+        private Object content; // <--- 이 부분을 String에서 Object로 수정하세요!
     }
 }

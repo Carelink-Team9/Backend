@@ -37,7 +37,7 @@ public class TranslationHistoryEntity {
     private String translatedContent;
 
     @Enumerated(EnumType.STRING)
-    private com.carelink.translationhistory.entity.TranslationStatus status;
+    private com.carelink.translationHistory.entity.TranslationStatus status;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)

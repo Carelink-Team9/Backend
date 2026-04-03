@@ -1,4 +1,4 @@
-package com.carelink.translationhistory.entity;
+package com.carelink.translationHistory.entity;
 
 public enum TranslationStatus {
     PENDING,
