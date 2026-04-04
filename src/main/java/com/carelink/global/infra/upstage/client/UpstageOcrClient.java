@@ -46,6 +46,7 @@ public class UpstageOcrClient {
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("document", fileResource);
         body.add("model", "document-parse");
+        body.add("ocr", "force"); // 손글씨·필기 주석 포함 전체 OCR 강제 적용
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);

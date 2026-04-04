@@ -1,5 +1,6 @@
 package com.carelink.prescription.service;
 
+import com.carelink.drug.entity.DrugEntity;
 import com.carelink.drug.repository.DrugRepository;
 import com.carelink.prescription.dto.PrescriptionResponse;
 import com.carelink.prescription.entity.PrescriptionEntity;
@@ -84,18 +85,19 @@ public class PrescriptionService {
         saveTranslationHistory(prescription, user.getLanguage(), parsedDrugs);
 
         // 6. 분석 결과를 DB 약 데이터와 매핑하여 저장
+        // DB에 없는 약도 저장 (drug = null)
         for (OpenAIService.ParsedDrug parsed : parsedDrugs) {
-            drugRepository.findByNameContaining(parsed.drugName()).stream().findFirst().ifPresent(drug -> {
-                prescriptionDrugRepository.save(PrescriptionDrugEntity.builder()
-                        .prescription(prescription)
-                        .drug(drug)
-                        .originalName(parsed.originalName())
-                        .dosage(parsed.dosage())
-                        .frequency(parsed.frequency())
-                        .duration(parsed.duration())
-                        .translatedContent(parsed.translatedContent())
-                        .build());
-            });
+            DrugEntity matchedDrug = drugRepository.findByNameContaining(parsed.drugName())
+                    .stream().findFirst().orElse(null);
+            prescriptionDrugRepository.save(PrescriptionDrugEntity.builder()
+                    .prescription(prescription)
+                    .drug(matchedDrug)
+                    .originalName(parsed.originalName())
+                    .dosage(parsed.dosage())
+                    .frequency(parsed.frequency())
+                    .duration(parsed.duration())
+                    .translatedContent(parsed.translatedContent())
+                    .build());
         }
 
         return prescription.getPrescriptionId();
@@ -113,7 +115,7 @@ public class PrescriptionService {
         List<PrescriptionResponse.DrugDetailDto> drugs = prescriptionDrugRepository.findByPrescription(prescription)
                 .stream()
                 .map(pd -> new PrescriptionResponse.DrugDetailDto(
-                        pd.getDrug().getName(),
+                        pd.getDrug() != null ? pd.getDrug().getName() : pd.getOriginalName(),
                         pd.getOriginalName(),
                         pd.getDosage(),
                         pd.getFrequency(),
