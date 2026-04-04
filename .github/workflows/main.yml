@@ -1,12 +1,13 @@
-name: CareLink CI/CD with Docker and GHCR
+name: CareLink CI/CD Final
 
 on:
   push:
     branches:
-      - main  # main 브랜치에 push될 때 실행
+      - main
 
 env:
   REGISTRY: ghcr.io
+  # IMAGE_NAME을 소문자로 변환하기 위해 변수 처리 방식을 변경합니다.
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
@@ -17,62 +18,63 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout 리포지토리
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: JDK 17 설정
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # 1. GHCR 로그인
-      - name: GitHub Container Registry 로그인
+      - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      # 2. Docker 이미지 빌드 및 푸시 (작성한 Dockerfile 사용)
-      - name: 빌드 및 푸시
+      # 이미지 이름을 소문자로 변환하는 단계 추가
+      - name: Lowercase the repo name
+        run: echo "IMAGE_NAME_LOWER=$(echo ${{ env.IMAGE_NAME }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ./Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          # 변환된 소문자 이름을 사용합니다.
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:latest
 
   deploy:
-    needs: build-and-push # 빌드가 성공해야 배포 시작
+    needs: build-and-push
     runs-on: ubuntu-latest
 
     steps:
-      - name: EC2 접속 및 배포
+      # 배포 단계에서도 소문자 이름이 필요하므로 다시 변환합니다.
+      - name: Lowercase the repo name for deploy
+        run: echo "IMAGE_NAME_LOWER=$(echo ${{ env.IMAGE_NAME }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # 1. GHCR 로그인
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            # 2. 기존 컨테이너 중지 및 삭제
             docker stop carelink-app || true
             docker rm carelink-app || true
 
-            # 3. 최신 이미지 Pull
-            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            # 소문자로 변환된 이미지 pull (수동 입력 시 주의)
+            docker pull ghcr.io/${{ env.IMAGE_NAME_LOWER }}:latest
 
-            # 4. Redis 컨테이너가 없다면 실행 ( carelink-network 사용 )
             if [ ! "$(docker ps -q -f name=carelink-redis)" ]; then
-                if [ "$(docker ps -aq -f status=exited -f name=carelink-redis)" ]; then
-                    docker rm carelink-redis
-                fi
-                docker run -d --name carelink-redis --network carelink_network -p 6379:6379 redis:7.2 redis-server --appendonly yes
+              docker run -d --name carelink-redis --network carelink_network -p 6379:6379 redis:7.2 redis-server --appendonly yes || true
             fi
 
-            # 5. 새 컨테이너 실행 (모든 Secrets 환경변수 주입)
             docker run -d \
               --name carelink-app \
               --network carelink_network \
@@ -89,9 +91,7 @@ jobs:
               -e GEMINI_MODEL="${{ secrets.GEMINI_MODEL }}" \
               -e OCR_UPSTAGE_API_KEY="${{ secrets.OCR_UPSTAGE_API_KEY }}" \
               -e EASY_DRUG_API_KEY="${{ secrets.EASY_DRUG_API_KEY }}" \
-              -e MYSQL_DATABASE="${{ secrets.MYSQL_DATABASE }}" \
               -e SERVER_PORT="${{ secrets.SERVER_PORT }}" \
-              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-
-            # 6. 사용하지 않는 이미지 정리
+              ghcr.io/${{ env.IMAGE_NAME_LOWER }}:latest
+            
             docker image prune -f
