@@ -39,8 +39,7 @@ public class CommunityPostEntity {
 
     @Column(name = "translated_content", columnDefinition = "json")
     private String translatedContent;
-
-    @Column(nullable = false)
+    
     private String language;
 
     @CreatedDate
