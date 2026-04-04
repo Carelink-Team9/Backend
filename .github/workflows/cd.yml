@@ -1,8 +1,7 @@
-name: CD
+name: CD Test Compose
 
 on:
-  push:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -20,3 +19,4 @@ jobs:
             git pull origin main
             docker compose down
             docker compose up -d --build
+
