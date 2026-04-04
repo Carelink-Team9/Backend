@@ -44,14 +44,31 @@ public class OpenAIService {
     ) {}
 
     /**
+     * ISO 언어 코드 → GPT가 확실히 이해하는 언어 이름으로 변환
+     */
+    private String toLanguageName(String code) {
+        return switch (code) {
+            case "ko" -> "Korean";
+            case "en" -> "English";
+            case "ja" -> "Japanese";
+            case "zh" -> "Chinese (Simplified)";
+            case "vi" -> "Vietnamese";
+            case "th" -> "Thai";
+            case "uz" -> "Uzbek";
+            default   -> "English";
+        };
+    }
+
+    /**
      * 1. 텍스트 번역
      */
     @Cacheable(value = "translations", key = "#text + '_' + #targetLanguage", unless = "#result == 'Translation Failed'")
     public String translate(String text, String targetLanguage) {
         if (text == null || text.isBlank()) return text;
         log.info("캐시 미존재 - GPT 번역 호출 중... (Language: {}, Text: {})", targetLanguage, text.substring(0, Math.min(text.length(), 10)));
+        String langName = toLanguageName(targetLanguage);
         String systemMessage = "You are a professional medical translator for 'CareLink' app. Translate naturally.";
-        String userMessage = String.format("Translate to '%s': %s", targetLanguage, text);
+        String userMessage = String.format("Translate to %s: %s", langName, text);
 
         ChatRequest request = new ChatRequest("gpt-4o-mini", List.of(
                 new ChatRequest.Message("system", systemMessage),
@@ -86,6 +103,7 @@ public class OpenAIService {
                     "pen-written numbers beside drug names indicating quantity/dosage, or circled drug names indicating doctor selection. " +
                     "Use your medical knowledge to fill in side effects, precautions, and food interactions for each drug based on its name, " +
                     "even if not explicitly written in the prescription.";
+            String langName = toLanguageName(targetLanguage);
             String userMessage = String.format(
                     "Extract ALL drug information from the following prescription OCR text.\n\n" +
                     "CRITICAL RULES:\n" +
@@ -94,23 +112,25 @@ public class OpenAIService {
                     "- Use your pharmacological knowledge to provide sideEffects, precautions, foodInteraction even if not in the text.\n" +
                     "- If a value is truly unknown or not applicable, use null.\n\n" +
                     "For each drug, extract these fields:\n" +
-                    "1. 'drugName': Clean Korean drug name only — NO dosage, NO parentheses, NO slashes, NO numbers after the name. " +
-                    "Strip ALL of the following: circled numbers/symbols, parenthetical expressions like (1/정) (2정) (0.5정), " +
-                    "slash-separated values, and any trailing quantity notation. Example: '라베피아정10밀리그램 ( 1 / 정 )' → '라베피아정10밀리그램'.\n" +
+                    "1. 'drugName': Clean Korean brand/product name only. Rules:\n" +
+                    "   - If the drug appears as 'BrandName(GenericName)', use the BRAND name before the parenthesis, NOT the generic inside. Example: '크리맥액(돔페리돈)' → '크리맥액'\n" +
+                    "   - Strip ALL of the following from the name: circled numbers/symbols (①②③), standalone digits or digit sequences (1 3 2), parenthetical dosage expressions like (1/정)(2정)(0.5정), slash-separated values, and any trailing quantity notation.\n" +
+                    "   - Example: '라베피아정10밀리그램 ( 1 / 정 )' → '라베피아정10밀리그램'\n" +
+                    "   - Example: '크리맥액(돔페리돈) 1 3 2' → '크리맥액'\n" +
                     "2. 'originalName': Exact name as it appears in the prescription including any annotation.\n" +
-                    "3. 'dosage': Amount per dose (e.g., '500mg', '1정', '2캡슐'). " +
+                    "3. 'dosage': Amount per dose extracted from the prescription (e.g., '500mg', '1정'). " +
                     "If the drug name had a parenthetical like (1/정) or (2정), extract that as the dosage here.\n" +
-                    "4. 'frequency': Full schedule in Korean (e.g., '1일 3회 식후 30분').\n" +
-                    "5. 'duration': Duration in Korean (e.g., '3일분', '7일').\n" +
-                    "6. 'translatedContent': 1–2 sentence plain explanation of this drug's purpose in %s.\n" +
-                    "7. 'sideEffects': Common side effects in %s (2–3 items, concise). Use pharmacological knowledge.\n" +
-                    "8. 'precautions': Key warnings/precautions in %s (e.g., 'Do not drive', '임산부 복용 금지'). Use pharmacological knowledge.\n" +
-                    "9. 'foodInteraction': Food/drink to avoid in %s (e.g., '알코올 금지', '자몽 주스 피할 것'). Use pharmacological knowledge. null if none.\n" +
+                    "4. 'frequency': Dosing schedule from the prescription. Translate to %s (e.g., if Korean says '1일 3회 식후 30분', write the equivalent in %s).\n" +
+                    "5. 'duration': Duration from the prescription. Translate to %s (e.g., if Korean says '7일분', write the equivalent in %s).\n" +
+                    "6. 'translatedContent': 1–2 sentence plain explanation of this drug's purpose. Write in %s.\n" +
+                    "7. 'sideEffects': Common side effects (2–3 items, concise). Use pharmacological knowledge. Write in %s.\n" +
+                    "8. 'precautions': Key warnings/precautions (e.g., 'Do not drive', 'Avoid during pregnancy'). Use pharmacological knowledge. Write in %s.\n" +
+                    "9. 'foodInteraction': Food/drink to avoid (e.g., 'Avoid alcohol', 'No grapefruit juice'). Use pharmacological knowledge. null if none. Write in %s.\n" +
                     "10. 'handwrittenNote': Any handwritten annotation detected near this drug (e.g., '①', '동그라미', '2정 추가'). null if none.\n\n" +
                     "Return ONLY a valid JSON array — no markdown fences, no extra text:\n" +
                     "[{\"drugName\":\"...\",\"originalName\":\"...\",\"dosage\":\"...\",\"frequency\":\"...\",\"duration\":\"...\",\"translatedContent\":\"...\",\"sideEffects\":\"...\",\"precautions\":\"...\",\"foodInteraction\":\"...\",\"handwrittenNote\":null}]\n\n" +
                     "Prescription OCR text:\n%s",
-                    targetLanguage, targetLanguage, targetLanguage, targetLanguage, extractedText
+                    langName, langName, langName, langName, langName, langName, langName, langName, extractedText
             );
 
             ChatRequest request = new ChatRequest("gpt-4o", List.of(
@@ -141,6 +161,7 @@ public class OpenAIService {
                     "The 'translatedMainDepartment', 'translatedReason', and 'translatedDepartmentName' fields must be written in the specified Target Language.";
 
             // 유저 메시지: 의사용 요약(doctorSummary)을 포함한 명확한 JSON 구조 요청
+            String langName = toLanguageName(targetLanguage);
             String userMessage = String.format(
                     "Symptoms Data: [%s]. Target Language: %s. " +
                             "Please analyze the symptoms and return the recommendation in this JSON format: " +
@@ -155,7 +176,7 @@ public class OpenAIService {
                             "    {\"departmentName\": \"(Korean)\", \"translatedDepartmentName\": \"(Translated in %s)\", \"confidence\": 70}" +
                             "  ]" +
                             "}",
-                    symptomInput, targetLanguage, targetLanguage, targetLanguage, targetLanguage
+                    symptomInput, langName, langName, langName, langName
             );
 
             ChatRequest request = new ChatRequest("gpt-4o-mini", List.of(
@@ -192,12 +213,13 @@ public class OpenAIService {
      */
     public String getPrescriptionChatAnswer(String userMessage, String drugContext, String targetLanguage) {
         try {
+            String langName = toLanguageName(targetLanguage);
             String systemMessage = String.format(
                     "You are a professional and kind pharmacist assistant for 'CareLink'. " +
                             "Answer the user's question ONLY based on the following prescription drug information: [%s]. " +
                             "If the question is not about these drugs, kindly ask them to stay on topic. " +
-                            "Provide the answer in %s language.",
-                    drugContext, targetLanguage
+                            "Provide the answer in %s.",
+                    drugContext, langName
             );
 
             ChatRequest request = new ChatRequest("gpt-4o-mini", List.of(
