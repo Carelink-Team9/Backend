@@ -75,8 +75,14 @@ public class PrescriptionService {
                 .imageUrl(imageUrl)
                 .build());
 
-        // 4. GPT Vision 분석 호출 (사용자의 모국어 설정 반영)
-        List<OpenAIService.ParsedDrug> parsedDrugs = openAIService.parsePrescriptionImage(imageUrl, user.getLanguage());
+        // 4. GPT Vision 분석 호출 (디스크 경유 없이 바이트 직접 전달)
+        byte[] imageBytes;
+        try {
+            imageBytes = file.getBytes();
+        } catch (IOException ex) {
+            throw new RuntimeException("파일 읽기 실패", ex);
+        }
+        List<OpenAIService.ParsedDrug> parsedDrugs = openAIService.parsePrescriptionImage(imageBytes, fileName, user.getLanguage());
         log.info("=== GPT 파싱 결과 ({} 개) ===", parsedDrugs.size());
         for (OpenAIService.ParsedDrug p : parsedDrugs) {
             log.info("  drugName={}, originalName={}, dosage={}, frequency={}, duration={}, translatedContent={}",

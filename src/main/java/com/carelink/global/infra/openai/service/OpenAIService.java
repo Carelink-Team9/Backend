@@ -13,8 +13,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -26,9 +24,6 @@ public class OpenAIService {
     private final OpenAIClient openAIClient;
     private final UpstageOcrClient upstageOcrClient;
     private final ObjectMapper objectMapper;
-
-    @Value("${file.upload-dir}")
-    private String uploadDir;
 
     public record ParsedDrug(
             String drugName,
@@ -84,12 +79,10 @@ public class OpenAIService {
     /**
      * 2. 처방전 이미지 분석 (Upstage OCR → GPT 파싱)
      */
-    public List<ParsedDrug> parsePrescriptionImage(String imageRelativePath, String targetLanguage) {
+    public List<ParsedDrug> parsePrescriptionImage(byte[] imageBytes, String fileName, String targetLanguage) {
         try {
-            // Step 1: Upstage OCR로 텍스트 추출
-            String fileName = imageRelativePath.substring(imageRelativePath.lastIndexOf("/") + 1);
-            Path imagePath = Paths.get(uploadDir).toAbsolutePath().normalize().resolve(fileName);
-            String extractedText = upstageOcrClient.extractText(imagePath);
+            // Step 1: Upstage OCR로 텍스트 추출 (디스크 경유 없이 바이트 직접 전달)
+            String extractedText = upstageOcrClient.extractText(imageBytes, fileName);
 
             if (extractedText == null || extractedText.isBlank()) {
                 log.warn("OCR 추출 텍스트가 비어있습니다. 빈 결과 반환.");
