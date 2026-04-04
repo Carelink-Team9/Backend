@@ -133,10 +133,12 @@ public class OpenAIService {
      */
     public DepartmentRecommendResponse recommendDepartment(String symptomInput, String targetLanguage) {
         try {
-            // 시스템 메시지: 키워드와 문장 모두 분석 가능함을 명시
+            // 시스템 메시지: 다국어 입력 명시적 처리
             String systemMessage = "You are a professional medical triage assistant for 'CareLink'. " +
-                    "Analyze the user's symptoms, which may be provided as a list of keywords or a natural language sentence. " +
-                    "Provide the most appropriate Korean medical department.";
+                    "The user's symptoms may be provided as Korean keywords, a Korean sentence, or text in ANY language (English, Japanese, Chinese, Vietnamese, Thai, Uzbek, etc.). " +
+                    "Regardless of the input language, internally interpret all symptoms and provide the most appropriate Korean medical department. " +
+                    "The 'reason' and 'doctorSummary' fields MUST always be written in Korean. " +
+                    "The 'translatedMainDepartment', 'translatedReason', and 'translatedDepartmentName' fields must be written in the specified Target Language.";
 
             // 유저 메시지: 의사용 요약(doctorSummary)을 포함한 명확한 JSON 구조 요청
             String userMessage = String.format(

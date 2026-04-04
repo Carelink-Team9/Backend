@@ -23,19 +23,28 @@ public class RecommendationController {
             @RequestBody Map<String, Object> request) { // <--- String 대신 Object로 받아야 리스트/문장 둘 다 대응 가능
 
         Object symptomsObj = request.get("symptoms");
+        String customDescription = request.get("customDescription") != null
+                ? request.get("customDescription").toString()
+                : null;
+
         String symptomInput;
 
         if (symptomsObj instanceof List) {
-            // 1. 버튼식 입력일 경우: ["두통", "발열"] -> "두통, 발열"
+            // 버튼 선택 증상: 항상 한국어 키워드
             symptomInput = String.join(", ", (List<String>) symptomsObj);
         } else if (symptomsObj != null) {
-            // 2. 직접 문장 입력일 경우: "배가 아픈거 같아" -> 그대로 사용
             symptomInput = symptomsObj.toString();
         } else {
             symptomInput = "";
         }
 
-        // 이제 서비스는 항상 깨끗한 String을 받게 됩니다.
+        // 자유 입력이 있으면 별도로 추가 (언어 무관)
+        if (customDescription != null && !customDescription.isBlank()) {
+            symptomInput = symptomInput.isBlank()
+                    ? customDescription
+                    : symptomInput + " | Additional description: " + customDescription;
+        }
+
         DepartmentRecommendResponse response = recommendationService.getAndSaveRecommendation(userId, symptomInput);
 
         return ResponseEntity.ok(response);
