@@ -34,6 +34,9 @@ public class CommunityPostEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    @Column(name = "translated_title", columnDefinition = "json")
+    private String translatedTitle;
+
     @Column(name = "translated_content", columnDefinition = "json")
     private String translatedContent;
 

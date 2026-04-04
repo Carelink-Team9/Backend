@@ -12,23 +12,29 @@ import java.time.LocalDateTime;
 public class CommunityPostResponse {
     private Long postId;
     private Long userId;
+    private String userName;
+    private String userLanguage;
     private String title;
     private String content;
     private String language;
     private String tag;
     private String category;
     private LocalDateTime createdAt;
+    private long commentCount;
 
-    public static CommunityPostResponse from(CommunityPostEntity entity, String content) {
+    public static CommunityPostResponse from(CommunityPostEntity entity, String Title, String content) {
         return CommunityPostResponse.builder()
                 .postId(entity.getCommunityPostId())
                 .userId(entity.getUser().getUserId())
-                .title(entity.getTitle())
+                .title(Title)
                 .content(content)
                 .language(entity.getLanguage())
                 .tag(entity.getTag())
+                .userName(entity.getUser().getName())
+                .userLanguage(entity.getUser().getLanguage())
                 .category(entity.getCategory().name())
                 .createdAt(entity.getCreatedAt())
+                .commentCount(builder().commentCount)
                 .build();
     }
 }

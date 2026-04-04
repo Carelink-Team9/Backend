@@ -35,7 +35,7 @@ public class CommentEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @Column(name = "translated_content", columnDefinition = "TEXT")
+    @Column(name = "translated_content", columnDefinition = "json")
     private String translatedContent;
 
     @Column(nullable = false)

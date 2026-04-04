@@ -6,6 +6,7 @@ import com.carelink.communityPost.entity.dto.CommunityPostUpdateRequest;
 import com.carelink.communityPost.service.CommunityPostService;
 import com.carelink.global.annotation.CurrentUserId;
 import com.carelink.global.response.ApiResponse;
+import com.carelink.global.type.ResponseMessage;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -79,6 +80,7 @@ public class CommunityPostController {
             @PathVariable Long postId
     ) {
         communityPostService.delete(userId, postId);
-        return ResponseEntity.ok(ApiResponse.ok(null));
+        return ResponseEntity.ok(ApiResponse.ok(ResponseMessage.POST_DELETE_SUCCESS));
     }
+
 }

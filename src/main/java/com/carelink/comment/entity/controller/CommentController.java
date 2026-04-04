@@ -6,6 +6,7 @@ import com.carelink.comment.entity.dto.CommentUpdateRequest;
 import com.carelink.comment.entity.service.CommentService;
 import com.carelink.global.annotation.CurrentUserId;
 import com.carelink.global.response.ApiResponse;
+import com.carelink.global.type.ResponseMessage;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -58,6 +59,7 @@ public class CommentController {
             @PathVariable Long commentId
     ) {
         commentService.delete(userId, commentId);
-        return ResponseEntity.ok(ApiResponse.ok(null));
+        return ResponseEntity.ok(ApiResponse.ok(ResponseMessage.COMMENT_DELETE_SUCCESS));
     }
+
 }
