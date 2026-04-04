@@ -16,6 +16,7 @@ import com.carelink.user.entity.UserEntity;
 import com.carelink.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,7 @@ import java.nio.file.*;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PrescriptionService {
@@ -72,6 +74,11 @@ public class PrescriptionService {
 
         // 4. GPT Vision 분석 호출 (사용자의 모국어 설정 반영)
         List<OpenAIService.ParsedDrug> parsedDrugs = openAIService.parsePrescriptionImage(imageUrl, user.getLanguage());
+        log.info("=== GPT 파싱 결과 ({} 개) ===", parsedDrugs.size());
+        for (OpenAIService.ParsedDrug p : parsedDrugs) {
+            log.info("  drugName={}, originalName={}, dosage={}, frequency={}, duration={}, translatedContent={}",
+                    p.drugName(), p.originalName(), p.dosage(), p.frequency(), p.duration(), p.translatedContent());
+        }
 
         // 5. TranslationHistory에 분석 원문(JSON) 저장
         saveTranslationHistory(prescription, user.getLanguage(), parsedDrugs);
@@ -82,10 +89,11 @@ public class PrescriptionService {
                 prescriptionDrugRepository.save(PrescriptionDrugEntity.builder()
                         .prescription(prescription)
                         .drug(drug)
+                        .originalName(parsed.originalName())
                         .dosage(parsed.dosage())
                         .frequency(parsed.frequency())
                         .duration(parsed.duration())
-                        .translatedContent(parsed.translatedContent()) // 다국어 복용 가이드
+                        .translatedContent(parsed.translatedContent())
                         .build());
             });
         }
@@ -106,13 +114,24 @@ public class PrescriptionService {
                 .stream()
                 .map(pd -> new PrescriptionResponse.DrugDetailDto(
                         pd.getDrug().getName(),
+                        pd.getOriginalName(),
                         pd.getDosage(),
                         pd.getFrequency(),
                         pd.getDuration(),
                         pd.getTranslatedContent()
                 )).toList();
 
-        return new PrescriptionResponse(prescriptionId, prescription.getCreatedAt(), drugs);
+        String imageUrl = prescriptionImageRepository.findByPrescription(prescription)
+                .stream().findFirst()
+                .map(PrescriptionImageEntity::getImageUrl)
+                .orElse(null);
+
+        log.info("=== GET /prescriptions/{} 응답 ({} 개 약) ===", prescriptionId, drugs.size());
+        for (PrescriptionResponse.DrugDetailDto d : drugs) {
+            log.info("  drugName={}, originalName={}, dosage={}, frequency={}, duration={}, translatedContent={}",
+                    d.getDrugName(), d.getOriginalName(), d.getDosage(), d.getFrequency(), d.getDuration(), d.getTranslatedContent());
+        }
+        return new PrescriptionResponse(prescriptionId, prescription.getCreatedAt(), imageUrl, drugs);
     }
 
     private void saveTranslationHistory(PrescriptionEntity prescription, String lang, List<OpenAIService.ParsedDrug> data) {

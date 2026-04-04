@@ -1,5 +1,6 @@
 package com.carelink.communityPost.service;
 
+import com.carelink.comment.repository.CommentRepository;
 import com.carelink.communityPost.entity.CommunityPostEntity;
 import com.carelink.communityPost.entity.dto.CommunityPostCreateRequest;
 import com.carelink.communityPost.entity.dto.CommunityPostResponse;
@@ -29,7 +30,9 @@ public class CommunityPostService {
     private final CommunityPostRepository communityPostRepository;
     private final UserRepository userRepository;
     private final TranslationService translationService;
+    private final CommentRepository commentRepository;
     private final ObjectMapper objectMapper;
+
 
     @Transactional
     public CommunityPostResponse create(Long userId, CommunityPostCreateRequest request) {
@@ -46,6 +49,7 @@ public class CommunityPostService {
                 .build();
 
         CommunityPostEntity savePost = communityPostRepository.save(post);
+
         return CommunityPostResponse.from(savePost, savePost.getTitle(), savePost.getContent());
     }
 
