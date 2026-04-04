@@ -54,7 +54,6 @@ public class DrugCardService {
         // 기본 응답 데이터 기준 Response 생성
         DrugCardDetailResponse response = DrugCardDetailResponse.from(prescriptionDrug);
 
-        // 번역 버튼이 눌렸을 때(translate=true) GPT 호출
         if (translate) {
             UserEntity user = userRepository.findById(userId)
                     .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
@@ -62,12 +61,14 @@ public class DrugCardService {
             String targetLang = user.getLanguage();
 
             try {
-                // 효능, 주의사항, 사용방법만 번역
+                // 부작용(seQesitm)과 상호작용(intrcQesitm) 번역 추가
                 String tEfficacy = openAIService.translate(response.getEfficacy(), targetLang);
                 String tCaution = openAIService.translate(response.getCaution(), targetLang);
                 String tUseMethod = openAIService.translate(response.getUseMethod(), targetLang);
+                String tSeQesitm = openAIService.translate(response.getSeQesitm(), targetLang);
+                String tIntrcQesitm = openAIService.translate(response.getIntrcQesitm(), targetLang);
 
-                response.updateTranslations(tEfficacy, tCaution, tUseMethod);
+                response.updateTranslations(tEfficacy, tCaution, tUseMethod, tSeQesitm, tIntrcQesitm);
             } catch (Exception e) {
                 log.error("GPT 번역 실패: {}. 원본 데이터로 반환합니다.", e.getMessage());
             }
