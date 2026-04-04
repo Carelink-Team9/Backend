@@ -94,26 +94,31 @@ public class OpenAIService {
 
     /**
      * 3. [추가] 증상 기반 진료과 추천 (Recommendation)
+     * 버튼(키워드 리스트)과 직접 입력(문장)을 모두 지원합니다.
      */
-    public DepartmentRecommendResponse recommendDepartment(List<String> symptoms, String targetLanguage) {
+    public DepartmentRecommendResponse recommendDepartment(String symptomInput, String targetLanguage) {
         try {
-            String symptomText = String.join(", ", symptoms);
-            String systemMessage = "You are a medical triage assistant. You must provide department names and reasons in both Korean and the user's target language.";
+            // 시스템 메시지: 키워드와 문장 모두 분석 가능함을 명시
+            String systemMessage = "You are a professional medical triage assistant for 'CareLink'. " +
+                    "Analyze the user's symptoms, which may be provided as a list of keywords or a natural language sentence. " +
+                    "Provide the most appropriate Korean medical department.";
 
+            // 유저 메시지: 의사용 요약(doctorSummary)을 포함한 명확한 JSON 구조 요청
             String userMessage = String.format(
-                    "Symptoms: [%s]. Target Language: %s. " +
-                            "Please provide the recommendation in the following JSON format: " +
+                    "Symptoms Data: [%s]. Target Language: %s. " +
+                            "Please analyze the symptoms and return the recommendation in this JSON format: " +
                             "{" +
-                            "  \"mainDepartment\": \"(Korean Name)\", " +
-                            "  \"translatedMainDepartment\": \"(Translated Name in %s)\", " +
+                            "  \"mainDepartment\": \"(Korean Name, e.g., 내과)\", " +
+                            "  \"translatedMainDepartment\": \"(Name in %s)\", " +
                             "  \"mainConfidence\": 95, " +
                             "  \"reason\": \"(Reason in Korean)\", " +
                             "  \"translatedReason\": \"(Reason in %s)\", " +
+                            "  \"doctorSummary\": \"(Summarize the patient's symptoms professionally in 1-2 Korean sentences for a doctor)\", " +
                             "  \"alternatives\": [" +
                             "    {\"departmentName\": \"(Korean)\", \"translatedDepartmentName\": \"(Translated in %s)\", \"confidence\": 70}" +
                             "  ]" +
                             "}",
-                    symptomText, targetLanguage, targetLanguage, targetLanguage, targetLanguage
+                    symptomInput, targetLanguage, targetLanguage, targetLanguage, targetLanguage
             );
 
             ChatRequest request = new ChatRequest("gpt-4o-mini", List.of(
@@ -126,7 +131,14 @@ public class OpenAIService {
             return objectMapper.readValue(jsonResult, DepartmentRecommendResponse.class);
         } catch (Exception e) {
             log.error("Recommendation Failed: ", e);
-            return DepartmentRecommendResponse.builder().mainDepartment("내과").mainConfidence(50).reason("Error").build();
+            // 에러 발생 시 기본값 반환
+            return DepartmentRecommendResponse.builder()
+                    .mainDepartment("내과")
+                    .translatedMainDepartment("Internal Medicine")
+                    .mainConfidence(50)
+                    .reason("Error occurred during analysis.")
+                    .doctorSummary("증상 분석 중 오류가 발생했습니다.")
+                    .build();
         }
     }
 

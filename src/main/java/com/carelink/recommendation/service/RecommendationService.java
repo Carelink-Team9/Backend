@@ -10,8 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-
 @Service
 @RequiredArgsConstructor
 public class RecommendationService {
@@ -21,23 +19,25 @@ public class RecommendationService {
     private final UserRepository userRepository;
 
     @Transactional
-    public DepartmentRecommendResponse getAndSaveRecommendation(Long userId, List<String> symptoms) {
+    public DepartmentRecommendResponse getAndSaveRecommendation(Long userId, String symptomInput) { // <--- 여기가 반드시 String이어야 합니다!
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // AI 호출 (OpenAIService의 수정된 메서드 호출)
-        DepartmentRecommendResponse response = openAIService.recommendDepartment(symptoms, user.getLanguage());
+        // 1. AI 추천 받기 (OpenAIService도 String을 받도록 수정되어 있어야 함)
+        DepartmentRecommendResponse response = openAIService.recommendDepartment(symptomInput, user.getLanguage());
 
-        // 이력 저장 (두 언어 모두 기록)
+        // 2. 이력 저장 (Entity에 doctorSummary 필드가 있어야 함)
         RecommendationEntity history = RecommendationEntity.builder()
                 .user(user)
-                .symptoms(String.join(", ", symptoms))
-                .recommendedDeptKo(response.getMainDepartment()) // 한국어
-                .recommendedDeptTr(response.getTranslatedMainDepartment()) // 번역본
+                .symptoms(symptomInput)
+                .recommendedDeptKo(response.getMainDepartment())
+                .recommendedDeptTr(response.getTranslatedMainDepartment())
+                .doctorSummary(response.getDoctorSummary()) // Entity 필드 확인!
                 .confidence(response.getMainConfidence())
                 .build();
 
         recommendationRepository.save(history);
+
         return response;
     }
 }
