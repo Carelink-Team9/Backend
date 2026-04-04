@@ -94,9 +94,12 @@ public class OpenAIService {
                     "- Use your pharmacological knowledge to provide sideEffects, precautions, foodInteraction even if not in the text.\n" +
                     "- If a value is truly unknown or not applicable, use null.\n\n" +
                     "For each drug, extract these fields:\n" +
-                    "1. 'drugName': Clean Korean drug name for DB search (strip circled numbers/symbols).\n" +
+                    "1. 'drugName': Clean Korean drug name only — NO dosage, NO parentheses, NO slashes, NO numbers after the name. " +
+                    "Strip ALL of the following: circled numbers/symbols, parenthetical expressions like (1/정) (2정) (0.5정), " +
+                    "slash-separated values, and any trailing quantity notation. Example: '라베피아정10밀리그램 ( 1 / 정 )' → '라베피아정10밀리그램'.\n" +
                     "2. 'originalName': Exact name as it appears in the prescription including any annotation.\n" +
-                    "3. 'dosage': Amount per dose (e.g., '500mg', '1정', '2캡슐'). Use handwritten number if present.\n" +
+                    "3. 'dosage': Amount per dose (e.g., '500mg', '1정', '2캡슐'). " +
+                    "If the drug name had a parenthetical like (1/정) or (2정), extract that as the dosage here.\n" +
                     "4. 'frequency': Full schedule in Korean (e.g., '1일 3회 식후 30분').\n" +
                     "5. 'duration': Duration in Korean (e.g., '3일분', '7일').\n" +
                     "6. 'translatedContent': 1–2 sentence plain explanation of this drug's purpose in %s.\n" +
@@ -130,10 +133,12 @@ public class OpenAIService {
      */
     public DepartmentRecommendResponse recommendDepartment(String symptomInput, String targetLanguage) {
         try {
-            // 시스템 메시지: 키워드와 문장 모두 분석 가능함을 명시
+            // 시스템 메시지: 다국어 입력 명시적 처리
             String systemMessage = "You are a professional medical triage assistant for 'CareLink'. " +
-                    "Analyze the user's symptoms, which may be provided as a list of keywords or a natural language sentence. " +
-                    "Provide the most appropriate Korean medical department.";
+                    "The user's symptoms may be provided as Korean keywords, a Korean sentence, or text in ANY language (English, Japanese, Chinese, Vietnamese, Thai, Uzbek, etc.). " +
+                    "Regardless of the input language, internally interpret all symptoms and provide the most appropriate Korean medical department. " +
+                    "The 'reason' and 'doctorSummary' fields MUST always be written in Korean. " +
+                    "The 'translatedMainDepartment', 'translatedReason', and 'translatedDepartmentName' fields must be written in the specified Target Language.";
 
             // 유저 메시지: 의사용 요약(doctorSummary)을 포함한 명확한 JSON 구조 요청
             String userMessage = String.format(

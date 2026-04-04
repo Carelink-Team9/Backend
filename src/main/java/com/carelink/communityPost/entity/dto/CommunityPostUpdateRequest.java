@@ -14,9 +14,6 @@ public class CommunityPostUpdateRequest {
     @NotBlank
     private String content;
 
-    @NotBlank
-    private String language;
-
     private String tag;
 
     @NotNull

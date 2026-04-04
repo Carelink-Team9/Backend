@@ -29,14 +29,24 @@ public class RecommendationController {
             @RequestBody DepartmentRecommendRequest request) {
 
         Object symptomsObj = request.getSymptoms();
+        String customDescription = request.getCustomDescription();
+
         String symptomInput;
 
         if (symptomsObj instanceof List<?> symptoms) {
+            // 버튼 선택 증상: 항상 한국어 키워드
             symptomInput = String.join(", ", symptoms.stream().map(String::valueOf).toList());
         } else if (symptomsObj != null) {
             symptomInput = symptomsObj.toString();
         } else {
             symptomInput = "";
+        }
+
+        // 자유 입력이 있으면 별도로 추가 (언어 무관)
+        if (customDescription != null && !customDescription.isBlank()) {
+            symptomInput = symptomInput.isBlank()
+                    ? customDescription
+                    : symptomInput + " | Additional description: " + customDescription;
         }
 
         DepartmentRecommendResponse response = recommendationService.getAndSaveRecommendation(userId, symptomInput);

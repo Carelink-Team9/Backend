@@ -13,4 +13,7 @@ public class DepartmentRecommendRequest {
             example = "[\"headache\", \"fever\"]"
     )
     private Object symptoms;
+
+    @Schema(description = "Additional free-text description in any language", example = "배가 많이 아파요")
+    private String customDescription;
 }
