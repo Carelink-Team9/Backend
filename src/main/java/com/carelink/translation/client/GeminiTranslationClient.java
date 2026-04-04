@@ -69,4 +69,45 @@ public class GeminiTranslationClient implements TranslationClient {
 
         return response.candidates().get(0).content().parts().get(0).text();
     }
+
+    @Override
+    public String[] translatePair(String title, String content, String sourceLanguage, String targetLanguage) {
+        String prompt = """
+                Translate the following title and content from %s to %s.
+                Return ONLY the two translated texts separated by exactly "---SPLIT---" on its own line. No other output.
+
+                Title: %s
+                Content: %s
+                """.formatted(sourceLanguage, targetLanguage, title, content);
+
+        Map<String, Object> requestBody = Map.of(
+                "contents", List.of(
+                        Map.of("parts", List.of(Map.of("text", prompt)))
+                )
+        );
+
+        GeminiTranslateResponse response = restClientBuilder.build()
+                .post()
+                .uri(baseUrl + "/v1beta/models/" + model + ":generateContent?key=" + apiKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(requestBody)
+                .retrieve()
+                .body(GeminiTranslateResponse.class);
+
+        if (response == null
+                || response.candidates() == null
+                || response.candidates().isEmpty()
+                || response.candidates().get(0).content() == null
+                || response.candidates().get(0).content().parts() == null
+                || response.candidates().get(0).content().parts().isEmpty()) {
+            return new String[]{title, content};
+        }
+
+        String result = response.candidates().get(0).content().parts().get(0).text();
+        String[] parts = result.split("---SPLIT---", 2);
+        if (parts.length == 2) {
+            return new String[]{parts[0].trim(), parts[1].trim()};
+        }
+        return new String[]{result.trim(), content};
+    }
 }

@@ -13,6 +13,7 @@ import com.carelink.translation.service.TranslationService;
 import com.carelink.user.entity.UserEntity;
 import com.carelink.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.List;
 
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CommunityPostService {
@@ -138,12 +140,15 @@ public class CommunityPostService {
     @Transactional
     public List<CommunityPostResponse> getAllPosts(String targetLanguage) {
         return communityPostRepository.findAllByOrderByCreatedAtDesc().stream()
-                .map(post -> CommunityPostResponse.from(
-                        post,
-                        getOrTranslateTitle(post, targetLanguage),
-                        getOrTranslateContent(post, targetLanguage),
-                        getCommentCount(post.getCommunityPostId())
-                ))
+                .map(post -> {
+                    ensureTranslated(post, targetLanguage);
+                    return CommunityPostResponse.from(
+                            post,
+                            getCachedTitle(post, targetLanguage),
+                            getCachedContent(post, targetLanguage),
+                            getCommentCount(post.getCommunityPostId())
+                    );
+                })
                 .toList();
     }
 
@@ -153,12 +158,15 @@ public class CommunityPostService {
         return communityPostRepository
                 .findByTitleContainingOrContentContainingOrderByCreatedAtDesc(keyword, keyword)
                 .stream()
-                .map(post -> CommunityPostResponse.from(
-                        post,
-                        getOrTranslateTitle(post, targetLanguage),
-                        getOrTranslateContent(post, targetLanguage),
-                        getCommentCount(post.getCommunityPostId())
-                ))
+                .map(post -> {
+                    ensureTranslated(post, targetLanguage);
+                    return CommunityPostResponse.from(
+                            post,
+                            getCachedTitle(post, targetLanguage),
+                            getCachedContent(post, targetLanguage),
+                            getCommentCount(post.getCommunityPostId())
+                    );
+                })
                 .toList();
     }
 
@@ -169,12 +177,15 @@ public class CommunityPostService {
             String targetLanguage
     ) {
         return communityPostRepository.findByCategory(category).stream()
-                .map(post -> CommunityPostResponse.from(
-                        post,
-                        getOrTranslateTitle(post, targetLanguage),
-                        getOrTranslateContent(post, targetLanguage),
-                        getCommentCount(post.getCommunityPostId())
-                ))
+                .map(post -> {
+                    ensureTranslated(post, targetLanguage);
+                    return CommunityPostResponse.from(
+                            post,
+                            getCachedTitle(post, targetLanguage),
+                            getCachedContent(post, targetLanguage),
+                            getCommentCount(post.getCommunityPostId())
+                    );
+                })
                 .toList();
     }
 
@@ -182,50 +193,54 @@ public class CommunityPostService {
         return commentRepository.countByCommunityPost_CommunityPostId(postId);
     }
 
-    private String getOrTranslateTitle(CommunityPostEntity post, String targetLanguage) {
-        if (post.getLanguage().equals(targetLanguage)) {
-            return post.getTitle();
-        }
+    /**
+     * 제목과 본문을 한 번의 Gemini 호출로 번역하고 DB에 캐시합니다.
+     * 이미 캐시된 경우 호출하지 않습니다.
+     * 429 등 에러 발생 시 원문을 캐시에 저장하고 반환합니다 (크래시 방지).
+     */
+    private void ensureTranslated(CommunityPostEntity post, String targetLanguage) {
+        if (post.getLanguage().equals(targetLanguage)) return;
 
         Map<String, String> titleMap = readTranslations(post.getTranslatedTitle());
-
-        if (titleMap.containsKey(targetLanguage)) {
-            return titleMap.get(targetLanguage);
-        }
-
-        String translatedTitle = translationService.translate(
-                post.getTitle(),
-                post.getLanguage(),
-                targetLanguage
-        );
-
-        titleMap.put(targetLanguage, translatedTitle);
-        post.setTranslatedTitle(writeTranslations(titleMap));
-
-        return translatedTitle;
-    }
-
-    private String getOrTranslateContent(CommunityPostEntity post, String targetLanguage) {
-        if (post.getLanguage().equals(targetLanguage)) {
-            return post.getContent();
-        }
-
         Map<String, String> contentMap = readTranslations(post.getTranslatedContent());
 
-        if (contentMap.containsKey(targetLanguage)) {
-            return contentMap.get(targetLanguage);
+        boolean needTitle = !titleMap.containsKey(targetLanguage);
+        boolean needContent = !contentMap.containsKey(targetLanguage);
+
+        if (!needTitle && !needContent) return;
+
+        try {
+            if (needTitle && needContent) {
+                String[] translated = translationService.translatePair(
+                        post.getTitle(), post.getContent(), post.getLanguage(), targetLanguage);
+                titleMap.put(targetLanguage, translated[0]);
+                contentMap.put(targetLanguage, translated[1]);
+            } else if (needTitle) {
+                titleMap.put(targetLanguage, translationService.translate(
+                        post.getTitle(), post.getLanguage(), targetLanguage));
+            } else {
+                contentMap.put(targetLanguage, translationService.translate(
+                        post.getContent(), post.getLanguage(), targetLanguage));
+            }
+        } catch (Exception e) {
+            log.warn("Translation failed for post {}, falling back to original: {}",
+                    post.getCommunityPostId(), e.getMessage());
+            if (needTitle) titleMap.put(targetLanguage, post.getTitle());
+            if (needContent) contentMap.put(targetLanguage, post.getContent());
         }
 
-        String translatedContent = translationService.translate(
-                post.getContent(),
-                post.getLanguage(),
-                targetLanguage
-        );
-
-        contentMap.put(targetLanguage, translatedContent);
+        post.setTranslatedTitle(writeTranslations(titleMap));
         post.setTranslatedContent(writeTranslations(contentMap));
+    }
 
-        return translatedContent;
+    private String getCachedTitle(CommunityPostEntity post, String targetLanguage) {
+        if (post.getLanguage().equals(targetLanguage)) return post.getTitle();
+        return readTranslations(post.getTranslatedTitle()).getOrDefault(targetLanguage, post.getTitle());
+    }
+
+    private String getCachedContent(CommunityPostEntity post, String targetLanguage) {
+        if (post.getLanguage().equals(targetLanguage)) return post.getContent();
+        return readTranslations(post.getTranslatedContent()).getOrDefault(targetLanguage, post.getContent());
     }
 
     private Map<String, String> readTranslations(String json) {

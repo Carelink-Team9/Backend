@@ -17,7 +17,14 @@ public class GeminiTranslationService implements TranslationService {
         if (sourceLanguage.equals(targetLanguage)) {
             return content;
         }
-
         return translationClient.translate(content, sourceLanguage, targetLanguage);
+    }
+
+    @Override
+    public String[] translatePair(String title, String content, String sourceLanguage, String targetLanguage) {
+        if (sourceLanguage.equals(targetLanguage)) {
+            return new String[]{title, content};
+        }
+        return translationClient.translatePair(title, content, sourceLanguage, targetLanguage);
     }
 }
