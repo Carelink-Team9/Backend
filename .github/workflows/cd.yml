@@ -17,6 +17,7 @@ jobs:
           script: |
             cd /home/ubuntu/carelink
             git pull origin main
+            chmod +x gradlew
+            ./gradlew clean bootJar -x test
             docker compose down
             docker compose up -d --build
-
