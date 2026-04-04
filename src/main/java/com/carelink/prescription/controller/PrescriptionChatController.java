@@ -58,7 +58,10 @@ public class PrescriptionChatController {
         // DB에서 약 정보 긁어와서 GPT에게 줄 맥락(Context) 만들기
         List<PrescriptionDrugEntity> drugs = prescriptionDrugRepository.findByPrescription_PrescriptionId(prescriptionId);
         String drugContext = drugs.stream()
-                .map(d -> d.getDrug().getName() + ": " + d.getTranslatedContent())
+                .map(d -> {
+                    String name = d.getDrug() != null ? d.getDrug().getName() : d.getOriginalName();
+                    return name + ": " + d.getTranslatedContent();
+                })
                 .collect(Collectors.joining(", "));
 
         // 유저 언어 설정 가져오기

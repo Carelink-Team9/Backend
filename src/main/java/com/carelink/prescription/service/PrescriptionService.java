@@ -166,13 +166,16 @@ public class PrescriptionService {
         // 1. 해당 유저의 모든 처방전을 최신순으로 가져옴
         List<PrescriptionEntity> prescriptions = prescriptionRepository.findAllByUser_UserIdOrderByCreatedAtDesc(userId);
 
-        // 2. 각 처방전별로 약 개수를 카운트하여 DTO로 변환
+        // 2. 각 처방전별로 약 개수 + 대표 이미지를 포함하여 DTO 변환
         return prescriptions.stream().map(p -> {
             int drugCount = prescriptionDrugRepository.findByPrescription_PrescriptionId(p.getPrescriptionId()).size();
+            String imageUrl = prescriptionImageRepository.findByPrescription_PrescriptionId(p.getPrescriptionId())
+                    .stream().findFirst().map(PrescriptionImageEntity::getImageUrl).orElse(null);
             return PrescriptionSummaryResponse.builder()
                     .prescriptionId(p.getPrescriptionId())
                     .totalDrugCount(drugCount)
                     .prescribedAt(p.getCreatedAt())
+                    .imageUrl(imageUrl)
                     .build();
         }).collect(Collectors.toList());
     }
@@ -184,11 +187,14 @@ public class PrescriptionService {
                 .orElseThrow(() -> new RuntimeException("등록된 처방전이 없습니다."));
 
         int drugCount = prescriptionDrugRepository.findByPrescription_PrescriptionId(latest.getPrescriptionId()).size();
+        String imageUrl = prescriptionImageRepository.findByPrescription_PrescriptionId(latest.getPrescriptionId())
+                .stream().findFirst().map(PrescriptionImageEntity::getImageUrl).orElse(null);
 
         return PrescriptionSummaryResponse.builder()
                 .prescriptionId(latest.getPrescriptionId())
                 .totalDrugCount(drugCount)
                 .prescribedAt(latest.getCreatedAt())
+                .imageUrl(imageUrl)
                 .build();
     }
 }

@@ -22,11 +22,11 @@ public class CommunityPostResponse {
     private LocalDateTime createdAt;
     private long commentCount;
 
-    public static CommunityPostResponse from(CommunityPostEntity entity, String Title, String content) {
+    public static CommunityPostResponse from(CommunityPostEntity entity, String title, String content, long commentCount) {
         return CommunityPostResponse.builder()
                 .postId(entity.getCommunityPostId())
                 .userId(entity.getUser().getUserId())
-                .title(Title)
+                .title(title)
                 .content(content)
                 .language(entity.getLanguage())
                 .tag(entity.getTag())
@@ -34,7 +34,7 @@ public class CommunityPostResponse {
                 .userLanguage(entity.getUser().getLanguage())
                 .category(entity.getCategory().name())
                 .createdAt(entity.getCreatedAt())
-                .commentCount(builder().commentCount)
+                .commentCount(commentCount)
                 .build();
     }
 }

@@ -10,4 +10,5 @@ public class PrescriptionSummaryResponse {
     private Long prescriptionId;
     private int totalDrugCount;
     private LocalDateTime prescribedAt;
+    private String imageUrl;
 }

@@ -49,8 +49,9 @@ public class CommunityPostService {
                 .build();
 
         CommunityPostEntity savePost = communityPostRepository.save(post);
+        long commentCount = commentRepository.countByCommunityPost_CommunityPostId(savePost.getCommunityPostId());
 
-        return CommunityPostResponse.from(savePost, savePost.getTitle(), savePost.getContent());
+        return CommunityPostResponse.from(savePost, savePost.getTitle(), savePost.getContent(), commentCount);
     }
 
     @Transactional
@@ -60,8 +61,9 @@ public class CommunityPostService {
 
         String title = getOrTranslateTitle(post, targetLanguage);
         String content = getOrTranslateContent(post, targetLanguage);
+        long commentCount = commentRepository.countByCommunityPost_CommunityPostId(postId);
 
-        return CommunityPostResponse.from(post, title, content);
+        return CommunityPostResponse.from(post, title, content, commentCount);
     }
 
     @Transactional
@@ -70,7 +72,8 @@ public class CommunityPostService {
                 .map(post -> CommunityPostResponse.from(
                         post,
                         getOrTranslateTitle(post, targetLanguage),
-                        getOrTranslateContent(post, targetLanguage)
+                        getOrTranslateContent(post, targetLanguage),
+                        commentRepository.countByCommunityPost_CommunityPostId(post.getCommunityPostId())
                 ))
                 .toList();
     }
@@ -83,7 +86,8 @@ public class CommunityPostService {
                 .map(post -> CommunityPostResponse.from(
                         post,
                         getOrTranslateTitle(post, targetLanguage),
-                        getOrTranslateContent(post, targetLanguage)
+                        getOrTranslateContent(post, targetLanguage),
+                        commentRepository.countByCommunityPost_CommunityPostId(post.getCommunityPostId())
                 ))
                 .toList();
     }
@@ -104,7 +108,8 @@ public class CommunityPostService {
         post.setTranslatedTitle(null);
         post.setTranslatedContent(null);
 
-        return CommunityPostResponse.from(post, post.getTitle(), post.getContent());
+        long commentCount = commentRepository.countByCommunityPost_CommunityPostId(post.getCommunityPostId());
+        return CommunityPostResponse.from(post, post.getTitle(), post.getContent(), commentCount);
     }
 
     @Transactional
