@@ -3,6 +3,7 @@ package com.carelink.global.exception;
 import com.carelink.global.response.ApiResponse;
 import com.carelink.global.type.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.connector.ClientAbortException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -56,6 +57,12 @@ public class GlobalExceptionHandler {
         log.error("DB 제약 조건 위반", e);
         return ResponseEntity.status(BAD_REQUEST.getHttpStatus())
                 .body(ApiResponse.fail(BAD_REQUEST));
+    }
+
+    // 클라이언트가 연결을 끊은 경우 — 이미지 전송 중 브라우저가 요청 취소할 때 발생, 무시
+    @ExceptionHandler(ClientAbortException.class)
+    public void handleClientAbort(ClientAbortException e) {
+        log.debug("클라이언트 연결 중단 (무시): {}", e.getMessage());
     }
 
     // 그 외 모든 예외 — 위에서 잡히지 않은 예상치 못한 에러
