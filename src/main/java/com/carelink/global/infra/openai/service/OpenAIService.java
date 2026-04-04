@@ -112,9 +112,11 @@ public class OpenAIService {
                     "- Use your pharmacological knowledge to provide sideEffects, precautions, foodInteraction even if not in the text.\n" +
                     "- If a value is truly unknown or not applicable, use null.\n\n" +
                     "For each drug, extract these fields:\n" +
-                    "1. 'drugName': Clean Korean drug name only — NO dosage, NO parentheses, NO slashes, NO numbers after the name. " +
-                    "Strip ALL of the following: circled numbers/symbols, parenthetical expressions like (1/정) (2정) (0.5정), " +
-                    "slash-separated values, and any trailing quantity notation. Example: '라베피아정10밀리그램 ( 1 / 정 )' → '라베피아정10밀리그램'.\n" +
+                    "1. 'drugName': Clean Korean brand/product name only. Rules:\n" +
+                    "   - If the drug appears as 'BrandName(GenericName)', use the BRAND name before the parenthesis, NOT the generic inside. Example: '크리맥액(돔페리돈)' → '크리맥액'\n" +
+                    "   - Strip ALL of the following from the name: circled numbers/symbols (①②③), standalone digits or digit sequences (1 3 2), parenthetical dosage expressions like (1/정)(2정)(0.5정), slash-separated values, and any trailing quantity notation.\n" +
+                    "   - Example: '라베피아정10밀리그램 ( 1 / 정 )' → '라베피아정10밀리그램'\n" +
+                    "   - Example: '크리맥액(돔페리돈) 1 3 2' → '크리맥액'\n" +
                     "2. 'originalName': Exact name as it appears in the prescription including any annotation.\n" +
                     "3. 'dosage': Amount per dose extracted from the prescription (e.g., '500mg', '1정'). " +
                     "If the drug name had a parenthetical like (1/정) or (2정), extract that as the dosage here.\n" +
