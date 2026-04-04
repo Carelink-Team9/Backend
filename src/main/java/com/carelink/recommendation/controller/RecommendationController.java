@@ -1,43 +1,45 @@
 package com.carelink.recommendation.controller;
 
 import com.carelink.global.annotation.CurrentUserId;
+import com.carelink.recommendation.dto.DepartmentRecommendRequest;
 import com.carelink.recommendation.dto.DepartmentRecommendResponse;
 import com.carelink.recommendation.service.RecommendationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/recommendations")
 @RequiredArgsConstructor
+@Tag(name = "Recommendation", description = "진료과 추천 API")
+@SecurityRequirement(name = "sessionCookieAuth")
 public class RecommendationController {
 
     private final RecommendationService recommendationService;
 
+    @Operation(summary = "진료과 추천", description = "증상을 바탕으로 적절한 진료과를 추천합니다.")
     @PostMapping("/department")
     public ResponseEntity<DepartmentRecommendResponse> recommend(
             @CurrentUserId Long userId,
-            @RequestBody Map<String, Object> request) { // <--- String 대신 Object로 받아야 리스트/문장 둘 다 대응 가능
+            @RequestBody DepartmentRecommendRequest request) {
 
-        Object symptomsObj = request.get("symptoms");
+        Object symptomsObj = request.getSymptoms();
         String symptomInput;
 
-        if (symptomsObj instanceof List) {
-            // 1. 버튼식 입력일 경우: ["두통", "발열"] -> "두통, 발열"
-            symptomInput = String.join(", ", (List<String>) symptomsObj);
+        if (symptomsObj instanceof List<?> symptoms) {
+            symptomInput = String.join(", ", symptoms.stream().map(String::valueOf).toList());
         } else if (symptomsObj != null) {
-            // 2. 직접 문장 입력일 경우: "배가 아픈거 같아" -> 그대로 사용
             symptomInput = symptomsObj.toString();
         } else {
             symptomInput = "";
         }
 
-        // 이제 서비스는 항상 깨끗한 String을 받게 됩니다.
         DepartmentRecommendResponse response = recommendationService.getAndSaveRecommendation(userId, symptomInput);
-
         return ResponseEntity.ok(response);
     }
 }

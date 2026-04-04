@@ -3,6 +3,8 @@ package com.carelink.hospital.controller;
 import com.carelink.global.response.ApiResponse;
 import com.carelink.hospital.dto.HospitalNearbyResponse;
 import com.carelink.hospital.service.HospitalService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/hospitals")
 @RequiredArgsConstructor
+@Tag(name = "Hospital", description = "병원 검색 API")
 public class HospitalController {
 
     private final HospitalService hospitalService;
@@ -27,6 +30,7 @@ public class HospitalController {
      * @param radius   반경 km (기본값: 5.0)
      * @param limit    최대 결과 수 (기본값: 20)
      */
+    @Operation(summary = "주변 병원 조회")
     @GetMapping("/nearby")
     public ResponseEntity<ApiResponse<List<HospitalNearbyResponse>>> getNearbyHospitals(
             @RequestParam double lat,
