@@ -3,6 +3,7 @@ package com.carelink.global.infra.openai.service;
 import com.carelink.global.infra.openai.client.OpenAIClient;
 import com.carelink.global.infra.openai.dto.ChatRequest;
 import com.carelink.global.infra.openai.dto.ChatResponse;
+import com.carelink.global.infra.upstage.client.UpstageOcrClient;
 import com.carelink.recommendation.dto.DepartmentRecommendResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,11 +13,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +24,7 @@ import java.util.Map;
 public class OpenAIService {
 
     private final OpenAIClient openAIClient;
+    private final UpstageOcrClient upstageOcrClient;
     private final ObjectMapper objectMapper;
 
     @Value("${file.upload-dir}")
@@ -37,7 +36,11 @@ public class OpenAIService {
             String dosage,
             String frequency,
             String duration,
-            String translatedContent
+            String translatedContent,
+            String sideEffects,
+            String precautions,
+            String foodInteraction,
+            String handwrittenNote
     ) {}
 
     /**
@@ -62,32 +65,61 @@ public class OpenAIService {
     }
 
     /**
-     * 2. 처방전 이미지 분석 (Vision)
+     * 2. 처방전 이미지 분석 (Upstage OCR → GPT 파싱)
      */
     public List<ParsedDrug> parsePrescriptionImage(String imageRelativePath, String targetLanguage) {
         try {
-            String base64Image = encodeImageToBase64(imageRelativePath);
-            String systemMessage = "You are a professional medical assistant. Analyze the prescription image.";
+            // Step 1: Upstage OCR로 텍스트 추출
+            String fileName = imageRelativePath.substring(imageRelativePath.lastIndexOf("/") + 1);
+            Path imagePath = Paths.get(uploadDir).toAbsolutePath().normalize().resolve(fileName);
+            String extractedText = upstageOcrClient.extractText(imagePath);
+
+            if (extractedText == null || extractedText.isBlank()) {
+                log.warn("OCR 추출 텍스트가 비어있습니다. 빈 결과 반환.");
+                return List.of();
+            }
+
+            // Step 2: GPT로 구조화된 약 정보 파싱
+            String systemMessage = "You are a professional Korean pharmacist and medical assistant. " +
+                    "Your task is to parse Korean prescription OCR text into comprehensive structured drug information. " +
+                    "The OCR text may contain handwritten annotations such as circled numbers (①②③ or (1)(2)(3)), " +
+                    "pen-written numbers beside drug names indicating quantity/dosage, or circled drug names indicating doctor selection. " +
+                    "Use your medical knowledge to fill in side effects, precautions, and food interactions for each drug based on its name, " +
+                    "even if not explicitly written in the prescription.";
             String userMessage = String.format(
-                    "Extract drug information. 1. 'drugName': Precise Korean medicine name for database searching. " +
-                            "2. 'translatedContent': 1-sentence explanation in %s. " +
-                            "Return ONLY JSON array: [{\"drugName\":\"...\", \"originalName\":\"...\", \"dosage\":\"...\", \"frequency\":\"...\", \"duration\":\"...\", \"translatedContent\":\"...\"}]",
-                    targetLanguage
+                    "Extract ALL drug information from the following prescription OCR text.\n\n" +
+                    "CRITICAL RULES:\n" +
+                    "- Extract EVERY drug found, including those with only handwritten annotations.\n" +
+                    "- Handwritten circled numbers (①②③) or pen numerals beside a drug name = quantity or selection marker.\n" +
+                    "- Use your pharmacological knowledge to provide sideEffects, precautions, foodInteraction even if not in the text.\n" +
+                    "- If a value is truly unknown or not applicable, use null.\n\n" +
+                    "For each drug, extract these fields:\n" +
+                    "1. 'drugName': Clean Korean drug name for DB search (strip circled numbers/symbols).\n" +
+                    "2. 'originalName': Exact name as it appears in the prescription including any annotation.\n" +
+                    "3. 'dosage': Amount per dose (e.g., '500mg', '1정', '2캡슐'). Use handwritten number if present.\n" +
+                    "4. 'frequency': Full schedule in Korean (e.g., '1일 3회 식후 30분').\n" +
+                    "5. 'duration': Duration in Korean (e.g., '3일분', '7일').\n" +
+                    "6. 'translatedContent': 1–2 sentence plain explanation of this drug's purpose in %s.\n" +
+                    "7. 'sideEffects': Common side effects in %s (2–3 items, concise). Use pharmacological knowledge.\n" +
+                    "8. 'precautions': Key warnings/precautions in %s (e.g., 'Do not drive', '임산부 복용 금지'). Use pharmacological knowledge.\n" +
+                    "9. 'foodInteraction': Food/drink to avoid in %s (e.g., '알코올 금지', '자몽 주스 피할 것'). Use pharmacological knowledge. null if none.\n" +
+                    "10. 'handwrittenNote': Any handwritten annotation detected near this drug (e.g., '①', '동그라미', '2정 추가'). null if none.\n\n" +
+                    "Return ONLY a valid JSON array — no markdown fences, no extra text:\n" +
+                    "[{\"drugName\":\"...\",\"originalName\":\"...\",\"dosage\":\"...\",\"frequency\":\"...\",\"duration\":\"...\",\"translatedContent\":\"...\",\"sideEffects\":\"...\",\"precautions\":\"...\",\"foodInteraction\":\"...\",\"handwrittenNote\":null}]\n\n" +
+                    "Prescription OCR text:\n%s",
+                    targetLanguage, targetLanguage, targetLanguage, targetLanguage, extractedText
             );
 
             ChatRequest request = new ChatRequest("gpt-4o", List.of(
                     new ChatRequest.Message("system", systemMessage),
-                    new ChatRequest.Message("user", List.of(
-                            Map.of("type", "text", "text", userMessage),
-                            Map.of("type", "image_url", "image_url", Map.of("url", "data:image/jpeg;base64," + base64Image))
-                    ))
+                    new ChatRequest.Message("user", userMessage)
             ));
 
             ChatResponse response = openAIClient.sendChatRequest(request);
             String jsonResult = extractJson(response.getChoices().get(0).getMessage().getContent());
             return objectMapper.readValue(jsonResult, new TypeReference<List<ParsedDrug>>() {});
         } catch (Exception e) {
-            log.error("GPT Vision Analysis Failed: ", e);
+            log.error("Upstage OCR / GPT Parsing Failed: ", e);
             return List.of();
         }
     }
@@ -148,12 +180,6 @@ public class OpenAIService {
             return content.substring(7, content.length() - 3).trim();
         }
         return content;
-    }
-
-    private String encodeImageToBase64(String imageRelativePath) throws IOException {
-        String fileName = imageRelativePath.substring(imageRelativePath.lastIndexOf("/") + 1);
-        Path path = Paths.get(uploadDir).toAbsolutePath().normalize().resolve(fileName);
-        return Base64.getEncoder().encodeToString(Files.readAllBytes(path));
     }
 
     /**

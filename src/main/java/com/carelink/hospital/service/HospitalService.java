@@ -18,7 +18,6 @@ public class HospitalService {
 
     @Transactional(readOnly = true)
     public List<HospitalNearbyResponse> findNearby(double lat, double lng, double radiusKm, int limit) {
-        // 바운딩 박스 계산 (Haversine 전 MySQL에서 1차 필터링용)
         double latDelta = radiusKm / EARTH_RADIUS_KM;
         double lngDelta = radiusKm / (EARTH_RADIUS_KM * Math.cos(Math.toRadians(lat)));
 
@@ -27,6 +26,21 @@ public class HospitalService {
                         lat - latDelta, lat + latDelta,
                         lng - lngDelta, lng + lngDelta,
                         radiusKm, limit)
+                .stream()
+                .map(HospitalNearbyResponse::fromRow)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<HospitalNearbyResponse> findNearbyByDepartment(double lat, double lng, double radiusKm, int limit, String department) {
+        double latDelta = radiusKm / EARTH_RADIUS_KM;
+        double lngDelta = radiusKm / (EARTH_RADIUS_KM * Math.cos(Math.toRadians(lat)));
+
+        return hospitalRepository
+                .findNearbyHospitalsByDepartment(lat, lng,
+                        lat - latDelta, lat + latDelta,
+                        lng - lngDelta, lng + lngDelta,
+                        radiusKm, limit, department)
                 .stream()
                 .map(HospitalNearbyResponse::fromRow)
                 .toList();

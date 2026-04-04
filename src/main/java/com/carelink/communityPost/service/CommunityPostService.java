@@ -19,8 +19,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
-
-
 import java.util.List;
 
 
@@ -57,7 +55,6 @@ public class CommunityPostService {
                 savePost.getContent(),
                 getCommentCount(savePost.getCommunityPostId())
         );
-
     }
 
     @Transactional
@@ -74,7 +71,6 @@ public class CommunityPostService {
                 content,
                 getCommentCount(post.getCommunityPostId())
         );
-
     }
 
     @Transactional
@@ -89,8 +85,6 @@ public class CommunityPostService {
                 .toList();
     }
 
-
-
     @Transactional
     public List<CommunityPostResponse> getByLanguage(String language, String targetLanguage) {
         return communityPostRepository.findByLanguage(language).stream()
@@ -102,7 +96,6 @@ public class CommunityPostService {
                 ))
                 .toList();
     }
-
 
     @Transactional
     public CommunityPostResponse update(Long userId, Long postId, CommunityPostUpdateRequest request) {
@@ -125,7 +118,6 @@ public class CommunityPostService {
                 post.getContent(),
                 getCommentCount(post.getCommunityPostId())
         );
-
     }
 
     @Transactional
@@ -143,7 +135,7 @@ public class CommunityPostService {
         }
     }
 
-    //커뮤니티 전체 조회
+    // 커뮤니티 전체 조회
     @Transactional
     public List<CommunityPostResponse> getAllPosts(String targetLanguage) {
         return communityPostRepository.findAllByOrderByCreatedAtDesc().stream()
@@ -156,7 +148,7 @@ public class CommunityPostService {
                 .toList();
     }
 
-    //커뮤니티 제목 / 내용 검색
+    // 커뮤니티 제목 / 내용 검색
     @Transactional
     public List<CommunityPostResponse> searchByKeyword(String keyword, String targetLanguage) {
         return communityPostRepository
@@ -169,10 +161,6 @@ public class CommunityPostService {
                         getCommentCount(post.getCommunityPostId())
                 ))
                 .toList();
-    }
-
-    private long getCommentCount(Long postId) {
-        return commentRepository.countByCommunityPost_CommunityPostId(postId);
     }
 
     // 카테고리별 검색
@@ -191,8 +179,9 @@ public class CommunityPostService {
                 .toList();
     }
 
-
-
+    private long getCommentCount(Long postId) {
+        return commentRepository.countByCommunityPost_CommunityPostId(postId);
+    }
 
     private String getOrTranslateTitle(CommunityPostEntity post, String targetLanguage) {
         if (post.getLanguage().equals(targetLanguage)) {
@@ -258,5 +247,4 @@ public class CommunityPostService {
             throw new RestApiException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
-
 }
