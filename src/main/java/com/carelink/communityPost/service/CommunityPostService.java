@@ -1,6 +1,7 @@
 package com.carelink.communityPost.service;
 
 import com.carelink.comment.repository.CommentRepository;
+import com.carelink.communityPost.entity.CommunityPostCategory;
 import com.carelink.communityPost.entity.CommunityPostEntity;
 import com.carelink.communityPost.entity.dto.CommunityPostCreateRequest;
 import com.carelink.communityPost.entity.dto.CommunityPostResponse;
@@ -50,7 +51,13 @@ public class CommunityPostService {
 
         CommunityPostEntity savePost = communityPostRepository.save(post);
 
-        return CommunityPostResponse.from(savePost, savePost.getTitle(), savePost.getContent());
+        return CommunityPostResponse.from(
+                savePost,
+                savePost.getTitle(),
+                savePost.getContent(),
+                getCommentCount(savePost.getCommunityPostId())
+        );
+
     }
 
     @Transactional
@@ -61,7 +68,13 @@ public class CommunityPostService {
         String title = getOrTranslateTitle(post, targetLanguage);
         String content = getOrTranslateContent(post, targetLanguage);
 
-        return CommunityPostResponse.from(post, title, content);
+        return CommunityPostResponse.from(
+                post,
+                title,
+                content,
+                getCommentCount(post.getCommunityPostId())
+        );
+
     }
 
     @Transactional
@@ -70,7 +83,8 @@ public class CommunityPostService {
                 .map(post -> CommunityPostResponse.from(
                         post,
                         getOrTranslateTitle(post, targetLanguage),
-                        getOrTranslateContent(post, targetLanguage)
+                        getOrTranslateContent(post, targetLanguage),
+                        getCommentCount(post.getCommunityPostId())
                 ))
                 .toList();
     }
@@ -83,7 +97,8 @@ public class CommunityPostService {
                 .map(post -> CommunityPostResponse.from(
                         post,
                         getOrTranslateTitle(post, targetLanguage),
-                        getOrTranslateContent(post, targetLanguage)
+                        getOrTranslateContent(post, targetLanguage),
+                        getCommentCount(post.getCommunityPostId())
                 ))
                 .toList();
     }
@@ -104,7 +119,13 @@ public class CommunityPostService {
         post.setTranslatedTitle(null);
         post.setTranslatedContent(null);
 
-        return CommunityPostResponse.from(post, post.getTitle(), post.getContent());
+        return CommunityPostResponse.from(
+                post,
+                post.getTitle(),
+                post.getContent(),
+                getCommentCount(post.getCommunityPostId())
+        );
+
     }
 
     @Transactional
@@ -121,6 +142,57 @@ public class CommunityPostService {
             throw new RestApiException(ErrorCode.FORBIDDEN);
         }
     }
+
+    //커뮤니티 전체 조회
+    @Transactional
+    public List<CommunityPostResponse> getAllPosts(String targetLanguage) {
+        return communityPostRepository.findAllByOrderByCreatedAtDesc().stream()
+                .map(post -> CommunityPostResponse.from(
+                        post,
+                        getOrTranslateTitle(post, targetLanguage),
+                        getOrTranslateContent(post, targetLanguage),
+                        getCommentCount(post.getCommunityPostId())
+                ))
+                .toList();
+    }
+
+    //커뮤니티 제목 / 내용 검색
+    @Transactional
+    public List<CommunityPostResponse> searchByKeyword(String keyword, String targetLanguage) {
+        return communityPostRepository
+                .findByTitleContainingOrContentContainingOrderByCreatedAtDesc(keyword, keyword)
+                .stream()
+                .map(post -> CommunityPostResponse.from(
+                        post,
+                        getOrTranslateTitle(post, targetLanguage),
+                        getOrTranslateContent(post, targetLanguage),
+                        getCommentCount(post.getCommunityPostId())
+                ))
+                .toList();
+    }
+
+    private long getCommentCount(Long postId) {
+        return commentRepository.countByCommunityPost_CommunityPostId(postId);
+    }
+
+    // 카테고리별 검색
+    @Transactional
+    public List<CommunityPostResponse> getByCategory(
+            CommunityPostCategory category,
+            String targetLanguage
+    ) {
+        return communityPostRepository.findByCategory(category).stream()
+                .map(post -> CommunityPostResponse.from(
+                        post,
+                        getOrTranslateTitle(post, targetLanguage),
+                        getOrTranslateContent(post, targetLanguage),
+                        getCommentCount(post.getCommunityPostId())
+                ))
+                .toList();
+    }
+
+
+
 
     private String getOrTranslateTitle(CommunityPostEntity post, String targetLanguage) {
         if (post.getLanguage().equals(targetLanguage)) {
