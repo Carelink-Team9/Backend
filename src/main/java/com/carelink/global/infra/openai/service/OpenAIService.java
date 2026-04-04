@@ -3,6 +3,7 @@ package com.carelink.global.infra.openai.service;
 import com.carelink.global.infra.openai.client.OpenAIClient;
 import com.carelink.global.infra.openai.dto.ChatRequest;
 import com.carelink.global.infra.openai.dto.ChatResponse;
+import com.carelink.recommendation.dto.DepartmentRecommendResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -25,43 +26,34 @@ import java.util.Map;
 public class OpenAIService {
 
     private final OpenAIClient openAIClient;
-    private final ObjectMapper objectMapper; // JSON 파싱을 위해 추가
+    private final ObjectMapper objectMapper;
 
     @Value("${file.upload-dir}")
-    private String uploadDir; // 파일 경로 읽기용
+    private String uploadDir;
 
-    /**
-     * 처방전 분석 결과 데이터 구조 (DTO)
-     * PrescriptionService에서 'OpenAIService.ParsedDrug'로 참조하게 됩니다.
-     */
     public record ParsedDrug(
-            String drugName,       // DB 매핑용 한국어 약 이름
-            String originalName,   // 이미지상의 원문 이름
-            String dosage,         // 용량 (예: 1정)
-            String frequency,      // 횟수 (예: 1일 3회)
-            String duration,       // 기간 (예: 3일)
-            String translatedContent // 사용자의 모국어로 된 간단한 설명
+            String drugName,
+            String originalName,
+            String dosage,
+            String frequency,
+            String duration,
+            String translatedContent
     ) {}
 
     /**
-     * 1. [기존 기능] 텍스트 번역
+     * 1. 텍스트 번역
      */
     @Cacheable(value = "translations", key = "#text + '_' + #targetLanguage", unless = "#result == 'Translation Failed'")
     public String translate(String text, String targetLanguage) {
         if (text == null || text.isBlank()) return text;
-
         log.info("캐시 미존재 - GPT 번역 호출 중... (Language: {}, Text: {})", targetLanguage, text.substring(0, Math.min(text.length(), 10)));
-
         String systemMessage = "You are a professional medical translator for 'CareLink' app. Translate naturally.";
         String userMessage = String.format("Translate to '%s': %s", targetLanguage, text);
 
-        ChatRequest request = new ChatRequest(
-                "gpt-4o-mini",
-                List.of(
-                        new ChatRequest.Message("system", systemMessage),
-                        new ChatRequest.Message("user", userMessage)
-                )
-        );
+        ChatRequest request = new ChatRequest("gpt-4o-mini", List.of(
+                new ChatRequest.Message("system", systemMessage),
+                new ChatRequest.Message("user", userMessage)
+        ));
 
         ChatResponse response = openAIClient.sendChatRequest(request);
         return (response != null && !response.getChoices().isEmpty())
@@ -70,52 +62,83 @@ public class OpenAIService {
     }
 
     /**
-     * 2. [신규 기능] 처방전 이미지 분석 (Vision)
+     * 2. 처방전 이미지 분석 (Vision)
      */
     public List<ParsedDrug> parsePrescriptionImage(String imageRelativePath, String targetLanguage) {
         try {
-            // 이미지 파일을 Base64로 인코딩
             String base64Image = encodeImageToBase64(imageRelativePath);
-
             String systemMessage = "You are a professional medical assistant. Analyze the prescription image.";
             String userMessage = String.format(
-                    "Extract drug information. " +
-                            "1. 'drugName': Precise Korean medicine name for database searching. " +
-                            "2. 'translatedContent': 1-sentence explanation of the drug's purpose in %s language. " +
-                            "Return ONLY a JSON array: [{\"drugName\":\"...\", \"originalName\":\"...\", \"dosage\":\"...\", \"frequency\":\"...\", \"duration\":\"...\", \"translatedContent\":\"...\"}]",
+                    "Extract drug information. 1. 'drugName': Precise Korean medicine name for database searching. " +
+                            "2. 'translatedContent': 1-sentence explanation in %s. " +
+                            "Return ONLY JSON array: [{\"drugName\":\"...\", \"originalName\":\"...\", \"dosage\":\"...\", \"frequency\":\"...\", \"duration\":\"...\", \"translatedContent\":\"...\"}]",
                     targetLanguage
             );
 
-            // Vision 전송용 ChatRequest 생성 (content가 List인 형태)
-            ChatRequest request = new ChatRequest(
-                    "gpt-4o", // Vision은 성능을 위해 gpt-4o 권장
-                    List.of(
-                            new ChatRequest.Message("system", systemMessage),
-                            new ChatRequest.Message("user", List.of(
-                                    Map.of("type", "text", "text", userMessage),
-                                    Map.of("type", "image_url", "image_url", Map.of("url", "data:image/jpeg;base64," + base64Image))
-                            ))
-                    )
-            );
+            ChatRequest request = new ChatRequest("gpt-4o", List.of(
+                    new ChatRequest.Message("system", systemMessage),
+                    new ChatRequest.Message("user", List.of(
+                            Map.of("type", "text", "text", userMessage),
+                            Map.of("type", "image_url", "image_url", Map.of("url", "data:image/jpeg;base64," + base64Image))
+                    ))
+            ));
 
             ChatResponse response = openAIClient.sendChatRequest(request);
-            String jsonResult = response.getChoices().get(0).getMessage().getContent().trim();
-
-            // 마크다운 태그 제거 (```json ... ```)
-            if (jsonResult.startsWith("```json")) {
-                jsonResult = jsonResult.substring(7, jsonResult.length() - 3);
-            }
-
+            String jsonResult = extractJson(response.getChoices().get(0).getMessage().getContent());
             return objectMapper.readValue(jsonResult, new TypeReference<List<ParsedDrug>>() {});
-
         } catch (Exception e) {
             log.error("GPT Vision Analysis Failed: ", e);
             return List.of();
         }
     }
 
+    /**
+     * 3. [추가] 증상 기반 진료과 추천 (Recommendation)
+     */
+    public DepartmentRecommendResponse recommendDepartment(List<String> symptoms, String targetLanguage) {
+        try {
+            String symptomText = String.join(", ", symptoms);
+            String systemMessage = "You are a medical triage assistant. You must provide department names and reasons in both Korean and the user's target language.";
+
+            String userMessage = String.format(
+                    "Symptoms: [%s]. Target Language: %s. " +
+                            "Please provide the recommendation in the following JSON format: " +
+                            "{" +
+                            "  \"mainDepartment\": \"(Korean Name)\", " +
+                            "  \"translatedMainDepartment\": \"(Translated Name in %s)\", " +
+                            "  \"mainConfidence\": 95, " +
+                            "  \"reason\": \"(Reason in Korean)\", " +
+                            "  \"translatedReason\": \"(Reason in %s)\", " +
+                            "  \"alternatives\": [" +
+                            "    {\"departmentName\": \"(Korean)\", \"translatedDepartmentName\": \"(Translated in %s)\", \"confidence\": 70}" +
+                            "  ]" +
+                            "}",
+                    symptomText, targetLanguage, targetLanguage, targetLanguage, targetLanguage
+            );
+
+            ChatRequest request = new ChatRequest("gpt-4o-mini", List.of(
+                    new ChatRequest.Message("system", systemMessage),
+                    new ChatRequest.Message("user", userMessage)
+            ));
+
+            ChatResponse response = openAIClient.sendChatRequest(request);
+            String jsonResult = extractJson(response.getChoices().get(0).getMessage().getContent());
+            return objectMapper.readValue(jsonResult, DepartmentRecommendResponse.class);
+        } catch (Exception e) {
+            log.error("Recommendation Failed: ", e);
+            return DepartmentRecommendResponse.builder().mainDepartment("내과").mainConfidence(50).reason("Error").build();
+        }
+    }
+
+    private String extractJson(String content) {
+        content = content.trim();
+        if (content.startsWith("```json")) {
+            return content.substring(7, content.length() - 3).trim();
+        }
+        return content;
+    }
+
     private String encodeImageToBase64(String imageRelativePath) throws IOException {
-        // 경로에서 파일명만 추출하여 실제 저장 경로와 결합
         String fileName = imageRelativePath.substring(imageRelativePath.lastIndexOf("/") + 1);
         Path path = Paths.get(uploadDir).toAbsolutePath().normalize().resolve(fileName);
         return Base64.getEncoder().encodeToString(Files.readAllBytes(path));
