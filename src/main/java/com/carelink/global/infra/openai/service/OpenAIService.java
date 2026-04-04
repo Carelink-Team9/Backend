@@ -80,27 +80,34 @@ public class OpenAIService {
             }
 
             // Step 2: GPT로 구조화된 약 정보 파싱
-            String systemMessage = "You are a professional medical assistant specializing in Korean prescription analysis. " +
-                    "Parse prescription text into structured drug information. " +
-                    "The text may contain handwritten annotations such as: " +
-                    "circled numbers (①②③ or (1)(2)(3)), pen-written numbers beside drug names, " +
-                    "circled drug names indicating selection, or handwritten dosage quantities. " +
-                    "Interpret these annotations as additional dosage/quantity/selection information.";
+            String systemMessage = "You are a professional Korean pharmacist and medical assistant. " +
+                    "Your task is to parse Korean prescription OCR text into comprehensive structured drug information. " +
+                    "The OCR text may contain handwritten annotations such as circled numbers (①②③ or (1)(2)(3)), " +
+                    "pen-written numbers beside drug names indicating quantity/dosage, or circled drug names indicating doctor selection. " +
+                    "Use your medical knowledge to fill in side effects, precautions, and food interactions for each drug based on its name, " +
+                    "even if not explicitly written in the prescription.";
             String userMessage = String.format(
-                    "Based on the following prescription text, extract ALL drug information.\n" +
-                    "IMPORTANT: The text may include handwritten marks — circled numbers (①②③), " +
-                    "pen-written numerals, or circled items. These indicate selected drugs or quantities.\n" +
-                    "Rules:\n" +
-                    "1. 'drugName': Precise Korean medicine name for database searching (remove circled numbers).\n" +
-                    "2. 'originalName': The drug name exactly as written, including any handwritten annotation.\n" +
-                    "3. 'dosage': Dosage amount (e.g., '500mg', '1정'). If a circled/handwritten number appears next to a drug, treat it as quantity.\n" +
-                    "4. 'frequency': Full dosage schedule in Korean (e.g., '1일 3회 식후 30분').\n" +
-                    "5. 'duration': Full duration string in Korean (e.g., '3일분').\n" +
-                    "6. 'translatedContent': 1-sentence explanation of this drug in %s.\n" +
-                    "Return ONLY a JSON array — no markdown, no extra text:\n" +
-                    "[{\"drugName\":\"...\",\"originalName\":\"...\",\"dosage\":\"...\",\"frequency\":\"...\",\"duration\":\"...\",\"translatedContent\":\"...\"}]\n\n" +
-                    "Prescription text:\n%s",
-                    targetLanguage, extractedText
+                    "Extract ALL drug information from the following prescription OCR text.\n\n" +
+                    "CRITICAL RULES:\n" +
+                    "- Extract EVERY drug found, including those with only handwritten annotations.\n" +
+                    "- Handwritten circled numbers (①②③) or pen numerals beside a drug name = quantity or selection marker.\n" +
+                    "- Use your pharmacological knowledge to provide sideEffects, precautions, foodInteraction even if not in the text.\n" +
+                    "- If a value is truly unknown or not applicable, use null.\n\n" +
+                    "For each drug, extract these fields:\n" +
+                    "1. 'drugName': Clean Korean drug name for DB search (strip circled numbers/symbols).\n" +
+                    "2. 'originalName': Exact name as it appears in the prescription including any annotation.\n" +
+                    "3. 'dosage': Amount per dose (e.g., '500mg', '1정', '2캡슐'). Use handwritten number if present.\n" +
+                    "4. 'frequency': Full schedule in Korean (e.g., '1일 3회 식후 30분').\n" +
+                    "5. 'duration': Duration in Korean (e.g., '3일분', '7일').\n" +
+                    "6. 'translatedContent': 1–2 sentence plain explanation of this drug's purpose in %s.\n" +
+                    "7. 'sideEffects': Common side effects in %s (2–3 items, concise). Use pharmacological knowledge.\n" +
+                    "8. 'precautions': Key warnings/precautions in %s (e.g., 'Do not drive', '임산부 복용 금지'). Use pharmacological knowledge.\n" +
+                    "9. 'foodInteraction': Food/drink to avoid in %s (e.g., '알코올 금지', '자몽 주스 피할 것'). Use pharmacological knowledge. null if none.\n" +
+                    "10. 'handwrittenNote': Any handwritten annotation detected near this drug (e.g., '①', '동그라미', '2정 추가'). null if none.\n\n" +
+                    "Return ONLY a valid JSON array — no markdown fences, no extra text:\n" +
+                    "[{\"drugName\":\"...\",\"originalName\":\"...\",\"dosage\":\"...\",\"frequency\":\"...\",\"duration\":\"...\",\"translatedContent\":\"...\",\"sideEffects\":\"...\",\"precautions\":\"...\",\"foodInteraction\":\"...\",\"handwrittenNote\":null}]\n\n" +
+                    "Prescription OCR text:\n%s",
+                    targetLanguage, targetLanguage, targetLanguage, targetLanguage, extractedText
             );
 
             ChatRequest request = new ChatRequest("gpt-4o", List.of(

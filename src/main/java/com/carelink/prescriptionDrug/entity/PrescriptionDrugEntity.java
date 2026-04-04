@@ -39,4 +39,16 @@ PrescriptionDrugEntity {
 
     @Column(name = "translated_content", columnDefinition = "TEXT")
     private String translatedContent;
+
+    @Column(name = "side_effects", columnDefinition = "TEXT")
+    private String sideEffects;
+
+    @Column(name = "precautions", columnDefinition = "TEXT")
+    private String precautions;
+
+    @Column(name = "food_interaction", columnDefinition = "TEXT")
+    private String foodInteraction;
+
+    @Column(name = "handwritten_note")
+    private String handwrittenNote;
 }

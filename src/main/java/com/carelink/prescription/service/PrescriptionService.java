@@ -97,6 +97,10 @@ public class PrescriptionService {
                     .frequency(parsed.frequency())
                     .duration(parsed.duration())
                     .translatedContent(parsed.translatedContent())
+                    .sideEffects(parsed.sideEffects())
+                    .precautions(parsed.precautions())
+                    .foodInteraction(parsed.foodInteraction())
+                    .handwrittenNote(parsed.handwrittenNote())
                     .build());
         }
 
@@ -120,7 +124,11 @@ public class PrescriptionService {
                         pd.getDosage(),
                         pd.getFrequency(),
                         pd.getDuration(),
-                        pd.getTranslatedContent()
+                        pd.getTranslatedContent(),
+                        pd.getSideEffects(),
+                        pd.getPrecautions(),
+                        pd.getFoodInteraction(),
+                        pd.getHandwrittenNote()
                 )).toList();
 
         String imageUrl = prescriptionImageRepository.findByPrescription(prescription)
