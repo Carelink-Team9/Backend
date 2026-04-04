@@ -13,4 +13,8 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPostEnti
     List<CommunityPostEntity> findByUser(UserEntity user);
     List<CommunityPostEntity> findByUser_UserId(Long userId);
     List<CommunityPostEntity> findByCategory(CommunityPostCategory category);
+    List<CommunityPostEntity> findByTagContaining(String tag);
+    List<CommunityPostEntity> findByLanguage(String language);
+    List<CommunityPostEntity> findAllByOrderByCreatedAtDesc();
+    List<CommunityPostEntity> findByTitleContainingOrContentContainingOrderByCreatedAtDesc(String titleKeyword, String contentKeyword);
 }

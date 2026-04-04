@@ -1,4 +1,4 @@
-package com.carelink.prescriptiondrug.entity;
+package com.carelink.prescriptionDrug.entity;
 
 import com.carelink.drug.entity.DrugEntity;
 import com.carelink.prescription.entity.PrescriptionEntity;
@@ -12,11 +12,13 @@ import lombok.*;
 @Builder
 @Entity
 @Table(name = "prescription_drug")
-public class PrescriptionDrugEntity {
+public class
+PrescriptionDrugEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "prescription_drug_id", length = 100)
-    private String prescriptionDrugId;
+    private Long prescriptionDrugId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "prescription_id")
@@ -26,6 +28,9 @@ public class PrescriptionDrugEntity {
     @JoinColumn(name = "drug_id")
     private DrugEntity drug;
 
+    @Column(name = "original_name")
+    private String originalName;
+
     private String dosage;
 
     private String frequency;
@@ -34,4 +39,16 @@ public class PrescriptionDrugEntity {
 
     @Column(name = "translated_content", columnDefinition = "TEXT")
     private String translatedContent;
+
+    @Column(name = "side_effects", columnDefinition = "TEXT")
+    private String sideEffects;
+
+    @Column(name = "precautions", columnDefinition = "TEXT")
+    private String precautions;
+
+    @Column(name = "food_interaction", columnDefinition = "TEXT")
+    private String foodInteraction;
+
+    @Column(name = "handwritten_note")
+    private String handwrittenNote;
 }

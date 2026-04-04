@@ -2,7 +2,7 @@ package com.carelink.translationHistory.repository;
 
 import com.carelink.prescription.entity.PrescriptionEntity;
 import com.carelink.translationHistory.entity.TranslationHistoryEntity;
-import com.carelink.translationhistory.entity.TranslationStatus;
+import com.carelink.translationHistory.entity.TranslationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

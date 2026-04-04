@@ -27,8 +27,10 @@ public class HospitalEntity {
 
     private String phone;
 
+    @Column(precision = 19, scale = 7)
     private BigDecimal latitude;
 
+    @Column(precision = 19, scale = 7)
     private BigDecimal longitude;
 
     @Column(name = "sido_nm")
@@ -37,5 +39,6 @@ public class HospitalEntity {
     @Column(name = "sggu_nm")
     private String sgguNm;
 
-    private String homePage;
+    private String homepage;
+
 }

@@ -1,5 +1,6 @@
 package com.carelink.communityPost.entity;
 
+import com.carelink.communityPost.entity.*;
 import com.carelink.user.entity.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -24,31 +25,33 @@ public class CommunityPostEntity {
     private Long communityPostId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
+    @Column(nullable = false)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
-
-    @Column(name = "translated_content", columnDefinition = "json")
-    private String translatedContent;
 
     @Column(name = "translated_title", columnDefinition = "json")
     private String translatedTitle;
 
+    @Column(name = "translated_content", columnDefinition = "json")
+    private String translatedContent;
+    
     private String language;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "tag", columnDefinition = "json")
+    @Column(name = "tag")
     private String tag;
 
     @Enumerated(EnumType.STRING)
-    private com.carelink.communityPost.entity.CommunityPostCategory category;
 
+    @Column(nullable = false)
+    private CommunityPostCategory category;
 
 }
