@@ -106,9 +106,13 @@ public class OpenAIService {
                     "- If a value is truly unknown or not applicable, use null.\n\n" +
                     "For each drug, extract these fields:\n" +
                     "1. 'drugName': Clean Korean brand/product name only. Rules:\n" +
-                    "   - If the drug appears as 'BrandName(GenericName)', use the BRAND name before the parenthesis, NOT the generic inside. Example: '크리맥액(돔페리돈)' → '크리맥액'\n" +
-                    "   - Strip ALL of the following from the name: circled numbers/symbols (①②③), standalone digits or digit sequences (1 3 2), parenthetical dosage expressions like (1/정)(2정)(0.5정), slash-separated values, and any trailing quantity notation.\n" +
-                    "   - Example: '라베피아정10밀리그램 ( 1 / 정 )' → '라베피아정10밀리그램'\n" +
+                    "   - The drug name is the Korean product/brand name including its strength (e.g., '엘리퀴스정2.5mg', '리피토정10mg'). Stop at the first token that is NOT part of the drug name.\n" +
+                    "   - If the drug appears as 'BrandName(GenericName)', use the BRAND name before the parenthesis. Example: '크리맥액(돔페리돈)' → '크리맥액'\n" +
+                    "   - Strip ALL of the following: circled numbers/symbols (①②③), controlled-substance markers like (향정)(향)(마), standalone digits and digit sequences, unit tokens like T/정/캡슐/ml, quantity/day counts (e.g., '1 T 2 140 280 T'), prescription-end markers ('-- 이하여백 --', '이하여백'), clinical notes after the name (e.g., '용량 조절(titration)', '용량조절'), slash-separated values, and any trailing annotation.\n" +
+                    "   - Example: '엘리퀴스정2.5mg 1 T 2 140 280 T' → '엘리퀴스정2.5mg'\n" +
+                    "   - Example: '자나팜정0.25mg(향정) 1 T 140' → '자나팜정0.25mg'\n" +
+                    "   - Example: '콩코르정2.5mg 용량 조절(titration) 0.5 T 1 140 70 T' → '콩코르정2.5mg'\n" +
+                    "   - Example: '리피토정 10mg -- 이하여백 -- 1 T 1 140 140 T' → '리피토정10mg'\n" +
                     "   - Example: '크리맥액(돔페리돈) 1 3 2' → '크리맥액'\n" +
                     "2. 'originalName': Exact name as it appears in the prescription including any annotation.\n" +
                     "3. 'dosage': Amount per dose extracted from the prescription (e.g., '500mg', '1정'). " +
