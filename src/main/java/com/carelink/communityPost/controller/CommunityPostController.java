@@ -1,5 +1,6 @@
 package com.carelink.communityPost.controller;
 
+import com.carelink.communityPost.entity.CommunityPostCategory;
 import com.carelink.communityPost.entity.dto.CommunityPostCreateRequest;
 import com.carelink.communityPost.entity.dto.CommunityPostResponse;
 import com.carelink.communityPost.entity.dto.CommunityPostUpdateRequest;
@@ -52,7 +53,7 @@ public class CommunityPostController {
     }
 
 
-    @GetMapping
+    @GetMapping("/filter/language")
     public ResponseEntity<ApiResponse<List<CommunityPostResponse>>> getByLanguage(
             @RequestParam String language,
             @RequestParam String targetLanguage
@@ -83,7 +84,7 @@ public class CommunityPostController {
         return ResponseEntity.ok(ApiResponse.ok(ResponseMessage.POST_DELETE_SUCCESS));
     }
 
-    @GetMapping
+    @GetMapping("list")
     public ResponseEntity<ApiResponse<List<CommunityPostResponse>>> getAllPosts(
             @RequestParam String targetLanguage
     ) {
@@ -91,6 +92,30 @@ public class CommunityPostController {
                 communityPostService.getAllPosts(targetLanguage)
         ));
     }
+
+    //제목 / 내용 검색
+    @GetMapping("/search/keyword")
+    public ResponseEntity<ApiResponse<List<CommunityPostResponse>>> searchByKeyword(
+            @RequestParam String keyword,
+            @RequestParam String targetLanguage
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                communityPostService.searchByKeyword(keyword, targetLanguage)
+        ));
+    }
+
+    // 카테고리별 검색
+    @GetMapping("/filter/category")
+    public ResponseEntity<ApiResponse<List<CommunityPostResponse>>> getByCategory(
+            @RequestParam CommunityPostCategory category,
+            @RequestParam String targetLanguage
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                communityPostService.getByCategory(category, targetLanguage)
+        ));
+    }
+
+
 
 
 }

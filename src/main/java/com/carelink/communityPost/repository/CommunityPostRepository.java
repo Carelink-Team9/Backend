@@ -16,5 +16,5 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPostEnti
     List<CommunityPostEntity> findByTagContaining(String tag);
     List<CommunityPostEntity> findByLanguage(String language);
     List<CommunityPostEntity> findAllByOrderByCreatedAtDesc();
-
+    List<CommunityPostEntity> findByTitleContainingOrContentContainingOrderByCreatedAtDesc(String titleKeyword, String contentKeyword);
 }
