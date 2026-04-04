@@ -22,19 +22,19 @@ public class CommunityPostResponse {
     private LocalDateTime createdAt;
     private long commentCount;
 
-    public static CommunityPostResponse from(CommunityPostEntity entity, String content, long commentCount) {
+    public static CommunityPostResponse from(CommunityPostEntity entity, String Title, String content) {
         return CommunityPostResponse.builder()
                 .postId(entity.getCommunityPostId())
                 .userId(entity.getUser().getUserId())
-                .userName(entity.getUser().getName())
-                .userLanguage(entity.getUser().getLanguage())
-                .title(entity.getTitle())
+                .title(Title)
                 .content(content)
                 .language(entity.getLanguage())
                 .tag(entity.getTag())
+                .userName(entity.getUser().getName())
+                .userLanguage(entity.getUser().getLanguage())
                 .category(entity.getCategory().name())
                 .createdAt(entity.getCreatedAt())
-                .commentCount(commentCount)
+                .commentCount(builder().commentCount)
                 .build();
     }
 }
