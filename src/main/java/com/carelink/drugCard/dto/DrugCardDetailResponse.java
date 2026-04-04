@@ -42,11 +42,13 @@ public class DrugCardDetailResponse {
                 .build();
     }
 
-    // 번역 결과로 필드를 업데이트하는 메서드
-    public void updateTranslations(String efficacy, String caution, String useMethod) {
+    // 번역 결과로 필드를 업데이트하는 메서드 (확장)
+    public void updateTranslations(String efficacy, String caution, String useMethod, String seQesitm, String intrcQesitm) {
         this.efficacy = efficacy;
         this.caution = caution;
         this.useMethod = useMethod;
+        this.seQesitm = seQesitm;
+        this.intrcQesitm = intrcQesitm;
     }
 }
 
