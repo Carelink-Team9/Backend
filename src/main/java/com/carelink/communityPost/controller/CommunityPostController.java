@@ -83,4 +83,14 @@ public class CommunityPostController {
         return ResponseEntity.ok(ApiResponse.ok(ResponseMessage.POST_DELETE_SUCCESS));
     }
 
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<CommunityPostResponse>>> getAllPosts(
+            @RequestParam String targetLanguage
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                communityPostService.getAllPosts(targetLanguage)
+        ));
+    }
+
+
 }

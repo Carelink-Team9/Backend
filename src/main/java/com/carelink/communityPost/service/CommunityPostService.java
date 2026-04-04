@@ -118,6 +118,19 @@ public class CommunityPostService {
         }
     }
 
+    //커뮤니티 전체 조회
+    @Transactional
+    public List<CommunityPostResponse> getAllPosts(String targetLanguage) {
+        return communityPostRepository.findAllByOrderByCreatedAtDesc().stream()
+                .map(post -> CommunityPostResponse.from(
+                        post,
+                        getOrTranslateTitle(post, targetLanguage),
+                        getOrTranslateContent(post, targetLanguage)
+                ))
+                .toList();
+    }
+
+
     private String getOrTranslateTitle(CommunityPostEntity post, String targetLanguage) {
         if (post.getLanguage().equals(targetLanguage)) {
             return post.getTitle();
