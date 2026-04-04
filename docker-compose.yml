@@ -40,9 +40,25 @@ services:
     networks:
       - carelink_network
 
+  app:
+    build: .
+    container_name: carelink-app
+    restart: always
+    depends_on:
+      - mysql
+      - redis
+    env_file:
+      - .env
+    ports:
+      - "${SERVER_PORT}:8080"
+    networks:
+      - carelink_network
+
+
 volumes:
   mysql_data:
   redis_data:
 
 networks:
   carelink_network:
+
