@@ -143,4 +143,31 @@ public class OpenAIService {
         Path path = Paths.get(uploadDir).toAbsolutePath().normalize().resolve(fileName);
         return Base64.getEncoder().encodeToString(Files.readAllBytes(path));
     }
+
+    /**
+     * 4. [신규] 처방전 기반 챗봇 답변 생성
+     */
+    public String getPrescriptionChatAnswer(String userMessage, String drugContext, String targetLanguage) {
+        try {
+            String systemMessage = String.format(
+                    "You are a professional and kind pharmacist assistant for 'CareLink'. " +
+                            "Answer the user's question ONLY based on the following prescription drug information: [%s]. " +
+                            "If the question is not about these drugs, kindly ask them to stay on topic. " +
+                            "Provide the answer in %s language.",
+                    drugContext, targetLanguage
+            );
+
+            ChatRequest request = new ChatRequest("gpt-4o-mini", List.of(
+                    new ChatRequest.Message("system", systemMessage),
+                    new ChatRequest.Message("user", userMessage)
+            ));
+
+            ChatResponse response = openAIClient.sendChatRequest(request);
+            return response.getChoices().get(0).getMessage().getContent().trim();
+        } catch (Exception e) {
+            log.error("Prescription Chat Failed: ", e);
+            return "죄송합니다. 답변을 생성하는 중 오류가 발생했습니다.";
+        }
+    }
+
 }
