@@ -12,6 +12,8 @@ public class CommentResponse {
 
     private Long commentId;
     private Long userId;
+    private String userName;
+    private String userLanguage;
     private Long postId;
     private String content;
     private String language;
@@ -21,6 +23,8 @@ public class CommentResponse {
         return CommentResponse.builder()
                 .commentId(entity.getCommentId())
                 .userId(entity.getUser().getUserId())
+                .userName(entity.getUser().getName())
+                .userLanguage(entity.getUser().getLanguage())
                 .postId(entity.getCommunityPost().getCommunityPostId())
                 .content(content)
                 .language(entity.getLanguage())

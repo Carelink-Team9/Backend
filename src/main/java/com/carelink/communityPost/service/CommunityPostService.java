@@ -1,5 +1,6 @@
 package com.carelink.communityPost.service;
 
+import com.carelink.comment.repository.CommentRepository;
 import com.carelink.communityPost.entity.CommunityPostEntity;
 import com.carelink.communityPost.entity.dto.CommunityPostCreateRequest;
 import com.carelink.communityPost.entity.dto.CommunityPostResponse;
@@ -24,6 +25,7 @@ public class CommunityPostService {
     private final CommunityPostRepository communityPostRepository;
     private final UserRepository userRepository;
     private final TranslationService translationService;
+    private final CommentRepository commentRepository;
 
     @Transactional
     public CommunityPostResponse create(Long userId, CommunityPostCreateRequest request) {
@@ -40,7 +42,7 @@ public class CommunityPostService {
                 .build();
 
         CommunityPostEntity savePost = communityPostRepository.save(post);
-        return CommunityPostResponse.from(savePost, savePost.getContent());
+        return CommunityPostResponse.from(savePost, savePost.getContent(), 0);
     }
 
     @Transactional(readOnly = true)
@@ -55,7 +57,8 @@ public class CommunityPostService {
                 targetLanguage
         );
 
-        return CommunityPostResponse.from(post, translatedContent);
+        long commentCount = commentRepository.countByCommunityPost_CommunityPostId(postId);
+        return CommunityPostResponse.from(post, translatedContent, commentCount);
     }
 
     @Transactional(readOnly = true)
@@ -63,11 +66,8 @@ public class CommunityPostService {
         return communityPostRepository.findByTagContaining(tag).stream()
                 .map(post -> CommunityPostResponse.from(
                         post,
-                        translationService.translate(
-                                post.getContent(),
-                                post.getLanguage(),
-                                targetLanguage
-                        )
+                        translationService.translate(post.getContent(), post.getLanguage(), targetLanguage),
+                        commentRepository.countByCommunityPost_CommunityPostId(post.getCommunityPostId())
                 ))
                 .toList();
     }
@@ -78,11 +78,8 @@ public class CommunityPostService {
         return communityPostRepository.findByLanguage(language).stream()
                 .map(post -> CommunityPostResponse.from(
                         post,
-                        translationService.translate(
-                                post.getContent(),
-                                post.getLanguage(),
-                                targetLanguage
-                        )
+                        translationService.translate(post.getContent(), post.getLanguage(), targetLanguage),
+                        commentRepository.countByCommunityPost_CommunityPostId(post.getCommunityPostId())
                 ))
                 .toList();
     }
@@ -101,7 +98,8 @@ public class CommunityPostService {
         post.setCategory(request.getCategory());
         post.setTranslatedContent(null);
 
-        return CommunityPostResponse.from(post, post.getContent());
+        long commentCount = commentRepository.countByCommunityPost_CommunityPostId(postId);
+        return CommunityPostResponse.from(post, post.getContent(), commentCount);
     }
 
     @Transactional

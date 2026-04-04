@@ -12,7 +12,8 @@ import lombok.*;
 @Builder
 @Entity
 @Table(name = "prescription_drug")
-public class PrescriptionDrugEntity {
+public class
+PrescriptionDrugEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,6 +27,9 @@ public class PrescriptionDrugEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "drug_id")
     private DrugEntity drug;
+
+    @Column(name = "original_name")
+    private String originalName;
 
     private String dosage;
 
