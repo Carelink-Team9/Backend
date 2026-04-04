@@ -1,20 +1,32 @@
-version: '3.8'
+version: "3.8"
 
 services:
   mysql:
-    image: mysql:8.0
+    image: mysql:8.4
     container_name: carelink-mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: carelink1234
-      MYSQL_DATABASE: carelink
+    restart: always
+
+    env_file:
+      - .env
+
     ports:
-      - "3306:3306"
+      - "${MYSQL_PORT}:3306"
+
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+
     volumes:
-      - mysql-data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
+
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
-    restart: unless-stopped
+
+    networks:
+      - carelink_network
 
   redis:
     image: redis:7.2
@@ -22,10 +34,15 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - redis-data:/data
+      - redis_data:/data
     command: redis-server --appendonly yes
     restart: unless-stopped
+    networks:
+      - carelink_network
 
 volumes:
-  mysql-data:
-  redis-data:
+  mysql_data:
+  redis_data:
+
+networks:
+  carelink_network:

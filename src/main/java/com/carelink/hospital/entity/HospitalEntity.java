@@ -40,4 +40,5 @@ public class HospitalEntity {
     private String sgguNm;
 
     private String homepage;
+
 }
