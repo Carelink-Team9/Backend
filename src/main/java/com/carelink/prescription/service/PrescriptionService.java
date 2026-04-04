@@ -2,6 +2,7 @@ package com.carelink.prescription.service;
 
 import com.carelink.drug.repository.DrugRepository;
 import com.carelink.prescription.dto.PrescriptionResponse;
+import com.carelink.prescription.dto.PrescriptionSummaryResponse;
 import com.carelink.prescription.entity.PrescriptionEntity;
 import com.carelink.prescription.repository.PrescriptionRepository;
 import com.carelink.prescriptionDrug.entity.PrescriptionDrugEntity;
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -147,5 +149,36 @@ public class PrescriptionService {
         } catch (Exception e) {
             // 히스토리 저장 실패가 핵심 로직을 방해하지 않도록 처리
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<PrescriptionSummaryResponse> getAllPrescriptionSummaries(Long userId) {
+        // 1. 해당 유저의 모든 처방전을 최신순으로 가져옴
+        List<PrescriptionEntity> prescriptions = prescriptionRepository.findAllByUser_UserIdOrderByCreatedAtDesc(userId);
+
+        // 2. 각 처방전별로 약 개수를 카운트하여 DTO로 변환
+        return prescriptions.stream().map(p -> {
+            int drugCount = prescriptionDrugRepository.findByPrescription_PrescriptionId(p.getPrescriptionId()).size();
+            return PrescriptionSummaryResponse.builder()
+                    .prescriptionId(p.getPrescriptionId())
+                    .totalDrugCount(drugCount)
+                    .prescribedAt(p.getCreatedAt())
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public PrescriptionSummaryResponse getLatestPrescriptionSummary(Long userId) {
+        // 가장 최근 처방전 1건 조회
+        PrescriptionEntity latest = prescriptionRepository.findFirstByUser_UserIdOrderByCreatedAtDesc(userId)
+                .orElseThrow(() -> new RuntimeException("등록된 처방전이 없습니다."));
+
+        int drugCount = prescriptionDrugRepository.findByPrescription_PrescriptionId(latest.getPrescriptionId()).size();
+
+        return PrescriptionSummaryResponse.builder()
+                .prescriptionId(latest.getPrescriptionId())
+                .totalDrugCount(drugCount)
+                .prescribedAt(latest.getCreatedAt())
+                .build();
     }
 }

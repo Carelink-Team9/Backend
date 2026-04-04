@@ -11,4 +11,12 @@ public interface PrescriptionRepository extends JpaRepository<PrescriptionEntity
     Optional<PrescriptionEntity> findByPrescriptionId(Long prescriptionId);
     List<PrescriptionEntity> findByUser(UserEntity user);
     List<PrescriptionEntity> findByUser_UserId(Long userId);
+
+    // 사용자의 모든 처방전을 최신순으로 조회
+    List<PrescriptionEntity> findAllByUser_UserIdOrderByCreatedAtDesc(Long userId);
+
+    // 사용자의 가장 최근 처방전 딱 1건만 조회
+    Optional<PrescriptionEntity> findFirstByUser_UserIdOrderByCreatedAtDesc(Long userId);
+
+
 }
