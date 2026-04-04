@@ -21,17 +21,17 @@ public class DrugCardListItemResponse {
     private String translatedContent; // GPT가 생성한 번역 요약
 
     public static DrugCardListItemResponse from(PrescriptionDrugEntity prescriptionDrug) {
+        var drug = prescriptionDrug.getDrug();
         return DrugCardListItemResponse.builder()
                 .prescriptionDrugId(prescriptionDrug.getPrescriptionDrugId())
-                .drugId(prescriptionDrug.getDrug().getDrugId())
-                .drugName(prescriptionDrug.getDrug().getName())
+                .drugId(drug != null ? drug.getDrugId() : null)
+                .drugName(drug != null ? drug.getName() : prescriptionDrug.getOriginalName())
                 .dosage(prescriptionDrug.getDosage())
                 .frequency(prescriptionDrug.getFrequency())
                 .duration(prescriptionDrug.getDuration())
-                // --- 매핑 추가 ---
-                .caution(prescriptionDrug.getDrug().getCaution())
-                .seQesitm(prescriptionDrug.getDrug().getSeQesitm())
-                .intrcQesitm(prescriptionDrug.getDrug().getIntrcQesitm())
+                .caution(drug != null ? drug.getCaution() : null)
+                .seQesitm(drug != null ? drug.getSeQesitm() : null)
+                .intrcQesitm(drug != null ? drug.getIntrcQesitm() : null)
                 .translatedContent(prescriptionDrug.getTranslatedContent())
                 .build();
     }

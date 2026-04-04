@@ -43,6 +43,11 @@ spring:
     resources:
       static-locations: file:./uploads/
 
+  servlet:
+    multipart:
+      max-file-size: ${MAX_FILE_SIZE:10MB}
+      max-request-size: ${MAX_REQUEST_SIZE:10MB}
+
 server:
   port: ${SERVER_PORT:8080}
 
@@ -57,6 +62,10 @@ gemini:
   model: ${GEMINI_MODEL:gemini-2.5-flash}
   base-url: https://generativelanguage.googleapis.com
 
+
+upstage:
+  api-key: ${OCR_UPSTAGE_API_KEY}
+  ocr-url: https://api.upstage.ai/v1/document-digitization
 
 external:
   hira:

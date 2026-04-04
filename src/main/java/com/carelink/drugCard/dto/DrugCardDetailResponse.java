@@ -25,19 +25,20 @@ public class DrugCardDetailResponse {
     private String translatedContent;
 
     public static DrugCardDetailResponse from(PrescriptionDrugEntity prescriptionDrug) {
+        var drug = prescriptionDrug.getDrug();
         return DrugCardDetailResponse.builder()
                 .prescriptionDrugId(prescriptionDrug.getPrescriptionDrugId())
-                .drugId(prescriptionDrug.getDrug().getDrugId())
-                .itemSeq(prescriptionDrug.getDrug().getItemSeq())
-                .drugName(prescriptionDrug.getDrug().getName())
+                .drugId(drug != null ? drug.getDrugId() : null)
+                .itemSeq(drug != null ? drug.getItemSeq() : null)
+                .drugName(drug != null ? drug.getName() : prescriptionDrug.getOriginalName())
                 .dosage(prescriptionDrug.getDosage())
                 .frequency(prescriptionDrug.getFrequency())
                 .duration(prescriptionDrug.getDuration())
-                .efficacy(prescriptionDrug.getDrug().getEfficacy())
-                .caution(prescriptionDrug.getDrug().getCaution())
-                .useMethod(prescriptionDrug.getDrug().getUseMethod())
-                .intrcQesitm(prescriptionDrug.getDrug().getIntrcQesitm())
-                .seQesitm(prescriptionDrug.getDrug().getSeQesitm())
+                .efficacy(drug != null ? drug.getEfficacy() : null)
+                .caution(drug != null ? drug.getCaution() : null)
+                .useMethod(drug != null ? drug.getUseMethod() : null)
+                .intrcQesitm(drug != null ? drug.getIntrcQesitm() : null)
+                .seQesitm(drug != null ? drug.getSeQesitm() : null)
                 .translatedContent(prescriptionDrug.getTranslatedContent())
                 .build();
     }

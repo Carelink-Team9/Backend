@@ -1,5 +1,6 @@
 package com.carelink.prescription.service;
 
+import com.carelink.drug.entity.DrugEntity;
 import com.carelink.drug.repository.DrugRepository;
 import com.carelink.prescription.dto.PrescriptionResponse;
 import com.carelink.prescription.dto.PrescriptionSummaryResponse;
@@ -86,18 +87,23 @@ public class PrescriptionService {
         saveTranslationHistory(prescription, user.getLanguage(), parsedDrugs);
 
         // 6. 분석 결과를 DB 약 데이터와 매핑하여 저장
+        // DB에 없는 약도 저장 (drug = null)
         for (OpenAIService.ParsedDrug parsed : parsedDrugs) {
-            drugRepository.findByNameContaining(parsed.drugName()).stream().findFirst().ifPresent(drug -> {
-                prescriptionDrugRepository.save(PrescriptionDrugEntity.builder()
-                        .prescription(prescription)
-                        .drug(drug)
-                        .originalName(parsed.originalName())
-                        .dosage(parsed.dosage())
-                        .frequency(parsed.frequency())
-                        .duration(parsed.duration())
-                        .translatedContent(parsed.translatedContent())
-                        .build());
-            });
+            DrugEntity matchedDrug = drugRepository.findByNameContaining(parsed.drugName())
+                    .stream().findFirst().orElse(null);
+            prescriptionDrugRepository.save(PrescriptionDrugEntity.builder()
+                    .prescription(prescription)
+                    .drug(matchedDrug)
+                    .originalName(parsed.originalName())
+                    .dosage(parsed.dosage())
+                    .frequency(parsed.frequency())
+                    .duration(parsed.duration())
+                    .translatedContent(parsed.translatedContent())
+                    .sideEffects(parsed.sideEffects())
+                    .precautions(parsed.precautions())
+                    .foodInteraction(parsed.foodInteraction())
+                    .handwrittenNote(parsed.handwrittenNote())
+                    .build());
         }
 
         return prescription.getPrescriptionId();
@@ -115,12 +121,16 @@ public class PrescriptionService {
         List<PrescriptionResponse.DrugDetailDto> drugs = prescriptionDrugRepository.findByPrescription(prescription)
                 .stream()
                 .map(pd -> new PrescriptionResponse.DrugDetailDto(
-                        pd.getDrug().getName(),
+                        pd.getDrug() != null ? pd.getDrug().getName() : pd.getOriginalName(),
                         pd.getOriginalName(),
                         pd.getDosage(),
                         pd.getFrequency(),
                         pd.getDuration(),
-                        pd.getTranslatedContent()
+                        pd.getTranslatedContent(),
+                        pd.getSideEffects(),
+                        pd.getPrecautions(),
+                        pd.getFoodInteraction(),
+                        pd.getHandwrittenNote()
                 )).toList();
 
         String imageUrl = prescriptionImageRepository.findByPrescription(prescription)
@@ -156,13 +166,16 @@ public class PrescriptionService {
         // 1. 해당 유저의 모든 처방전을 최신순으로 가져옴
         List<PrescriptionEntity> prescriptions = prescriptionRepository.findAllByUser_UserIdOrderByCreatedAtDesc(userId);
 
-        // 2. 각 처방전별로 약 개수를 카운트하여 DTO로 변환
+        // 2. 각 처방전별로 약 개수 + 대표 이미지를 포함하여 DTO 변환
         return prescriptions.stream().map(p -> {
             int drugCount = prescriptionDrugRepository.findByPrescription_PrescriptionId(p.getPrescriptionId()).size();
+            String imageUrl = prescriptionImageRepository.findByPrescription_PrescriptionId(p.getPrescriptionId())
+                    .stream().findFirst().map(PrescriptionImageEntity::getImageUrl).orElse(null);
             return PrescriptionSummaryResponse.builder()
                     .prescriptionId(p.getPrescriptionId())
                     .totalDrugCount(drugCount)
                     .prescribedAt(p.getCreatedAt())
+                    .imageUrl(imageUrl)
                     .build();
         }).collect(Collectors.toList());
     }
@@ -174,11 +187,14 @@ public class PrescriptionService {
                 .orElseThrow(() -> new RuntimeException("등록된 처방전이 없습니다."));
 
         int drugCount = prescriptionDrugRepository.findByPrescription_PrescriptionId(latest.getPrescriptionId()).size();
+        String imageUrl = prescriptionImageRepository.findByPrescription_PrescriptionId(latest.getPrescriptionId())
+                .stream().findFirst().map(PrescriptionImageEntity::getImageUrl).orElse(null);
 
         return PrescriptionSummaryResponse.builder()
                 .prescriptionId(latest.getPrescriptionId())
                 .totalDrugCount(drugCount)
                 .prescribedAt(latest.getCreatedAt())
+                .imageUrl(imageUrl)
                 .build();
     }
 }

@@ -34,4 +34,5 @@ public class PrescriptionController {
         PrescriptionResponse response = prescriptionService.getPrescriptionDetails(userId, prescriptionId);
         return ResponseEntity.ok(response);
     }
+
 }

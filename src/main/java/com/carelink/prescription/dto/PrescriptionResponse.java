@@ -22,5 +22,9 @@ public class PrescriptionResponse {
         private String frequency;         // 횟수
         private String duration;          // 기간
         private String translatedContent; // 유저 언어별 약 용도 설명
+        private String sideEffects;       // 부작용
+        private String precautions;       // 주의사항
+        private String foodInteraction;   // 음식/음료 주의
+        private String handwrittenNote;   // 손글씨/동그라미 주석
     }
 }

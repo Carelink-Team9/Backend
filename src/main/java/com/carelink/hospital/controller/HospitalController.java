@@ -32,9 +32,21 @@ public class HospitalController {
             @RequestParam double lat,
             @RequestParam double lng,
             @RequestParam(defaultValue = "5.0") double radius,
-            @RequestParam(defaultValue = "20") int limit
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) String department
     ) {
-        List<HospitalNearbyResponse> result = hospitalService.findNearby(lat, lng, radius, limit);
+        List<HospitalNearbyResponse> result;
+
+        if (department != null && !department.isBlank()) {
+            result = hospitalService.findNearbyByDepartment(lat, lng, radius, limit, department);
+            // 해당 진료과 병원이 없으면 전체 결과로 폴백
+            if (result.isEmpty()) {
+                result = hospitalService.findNearby(lat, lng, radius, limit);
+            }
+        } else {
+            result = hospitalService.findNearby(lat, lng, radius, limit);
+        }
+
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 }
