@@ -58,6 +58,10 @@ gemini:
   base-url: https://generativelanguage.googleapis.com
 
 
+upstage:
+  api-key: ${OCR_UPSTAGE_API_KEY}
+  ocr-url: https://api.upstage.ai/v1/document-digitization
+
 external:
   hira:
     api-key: ${HIRA_API_KEY}

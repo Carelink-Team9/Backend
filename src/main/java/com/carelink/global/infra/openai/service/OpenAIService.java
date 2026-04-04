@@ -3,6 +3,7 @@ package com.carelink.global.infra.openai.service;
 import com.carelink.global.infra.openai.client.OpenAIClient;
 import com.carelink.global.infra.openai.dto.ChatRequest;
 import com.carelink.global.infra.openai.dto.ChatResponse;
+import com.carelink.global.infra.upstage.client.UpstageOcrClient;
 import com.carelink.recommendation.dto.DepartmentRecommendResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,11 +13,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +24,7 @@ import java.util.Map;
 public class OpenAIService {
 
     private final OpenAIClient openAIClient;
+    private final UpstageOcrClient upstageOcrClient;
     private final ObjectMapper objectMapper;
 
     @Value("${file.upload-dir}")
@@ -62,32 +61,47 @@ public class OpenAIService {
     }
 
     /**
-     * 2. 처방전 이미지 분석 (Vision)
+     * 2. 처방전 이미지 분석 (Upstage OCR → GPT 파싱)
      */
     public List<ParsedDrug> parsePrescriptionImage(String imageRelativePath, String targetLanguage) {
         try {
-            String base64Image = encodeImageToBase64(imageRelativePath);
-            String systemMessage = "You are a professional medical assistant. Analyze the prescription image.";
+            // Step 1: Upstage OCR로 텍스트 추출
+            String fileName = imageRelativePath.substring(imageRelativePath.lastIndexOf("/") + 1);
+            Path imagePath = Paths.get(uploadDir).toAbsolutePath().normalize().resolve(fileName);
+            String extractedText = upstageOcrClient.extractText(imagePath);
+
+            if (extractedText == null || extractedText.isBlank()) {
+                log.warn("OCR 추출 텍스트가 비어있습니다. 빈 결과 반환.");
+                return List.of();
+            }
+
+            // Step 2: GPT로 구조화된 약 정보 파싱
+            String systemMessage = "You are a professional medical assistant. Parse prescription text into structured drug information.";
             String userMessage = String.format(
-                    "Extract drug information. 1. 'drugName': Precise Korean medicine name for database searching. " +
-                            "2. 'translatedContent': 1-sentence explanation in %s. " +
-                            "Return ONLY JSON array: [{\"drugName\":\"...\", \"originalName\":\"...\", \"dosage\":\"...\", \"frequency\":\"...\", \"duration\":\"...\", \"translatedContent\":\"...\"}]",
-                    targetLanguage
+                    "Based on the following prescription text, extract all drug information.\n" +
+                    "Rules:\n" +
+                    "1. 'drugName': Precise Korean medicine name for database searching.\n" +
+                    "2. 'originalName': The drug name exactly as written in the prescription.\n" +
+                    "3. 'dosage': Dosage amount (e.g., '500mg', '1정').\n" +
+                    "4. 'frequency': Full dosage schedule in Korean (e.g., '1일 3회 식후 30분').\n" +
+                    "5. 'duration': Full duration string in Korean (e.g., '3일분').\n" +
+                    "6. 'translatedContent': 1-sentence explanation of this drug in %s.\n" +
+                    "Return ONLY a JSON array with no extra text:\n" +
+                    "[{\"drugName\":\"...\",\"originalName\":\"...\",\"dosage\":\"...\",\"frequency\":\"...\",\"duration\":\"...\",\"translatedContent\":\"...\"}]\n\n" +
+                    "Prescription text:\n%s",
+                    targetLanguage, extractedText
             );
 
             ChatRequest request = new ChatRequest("gpt-4o", List.of(
                     new ChatRequest.Message("system", systemMessage),
-                    new ChatRequest.Message("user", List.of(
-                            Map.of("type", "text", "text", userMessage),
-                            Map.of("type", "image_url", "image_url", Map.of("url", "data:image/jpeg;base64," + base64Image))
-                    ))
+                    new ChatRequest.Message("user", userMessage)
             ));
 
             ChatResponse response = openAIClient.sendChatRequest(request);
             String jsonResult = extractJson(response.getChoices().get(0).getMessage().getContent());
             return objectMapper.readValue(jsonResult, new TypeReference<List<ParsedDrug>>() {});
         } catch (Exception e) {
-            log.error("GPT Vision Analysis Failed: ", e);
+            log.error("Upstage OCR / GPT Parsing Failed: ", e);
             return List.of();
         }
     }
@@ -148,12 +162,6 @@ public class OpenAIService {
             return content.substring(7, content.length() - 3).trim();
         }
         return content;
-    }
-
-    private String encodeImageToBase64(String imageRelativePath) throws IOException {
-        String fileName = imageRelativePath.substring(imageRelativePath.lastIndexOf("/") + 1);
-        Path path = Paths.get(uploadDir).toAbsolutePath().normalize().resolve(fileName);
-        return Base64.getEncoder().encodeToString(Files.readAllBytes(path));
     }
 
     /**
