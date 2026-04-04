@@ -19,11 +19,11 @@ public class CommunityPostResponse {
     private String category;
     private LocalDateTime createdAt;
 
-    public static CommunityPostResponse from(CommunityPostEntity entity, String content) {
+    public static CommunityPostResponse from(CommunityPostEntity entity, String Title, String content) {
         return CommunityPostResponse.builder()
                 .postId(entity.getCommunityPostId())
                 .userId(entity.getUser().getUserId())
-                .title(entity.getTitle())
+                .title(Title)
                 .content(content)
                 .language(entity.getLanguage())
                 .tag(entity.getTag())

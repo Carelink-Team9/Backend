@@ -15,6 +15,11 @@ import com.carelink.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.HashMap;
+import java.util.Map;
+
 
 import java.util.List;
 
@@ -26,6 +31,7 @@ public class CommentService {
     private final CommunityPostRepository communityPostRepository;
     private final UserRepository userRepository;
     private final TranslationService translationService;
+    private final ObjectMapper objectMapper;
 
 
     @Transactional
@@ -47,7 +53,7 @@ public class CommentService {
         return CommentResponse.from(savedComment, savedComment.getContent());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<CommentResponse> getByPostId(Long postId, String targetLanguage) {
         communityPostRepository.findById(postId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.POST_NOT_FOUND));
@@ -55,14 +61,11 @@ public class CommentService {
         return commentRepository.findByCommunityPost_CommunityPostId(postId).stream()
                 .map(comment -> CommentResponse.from(
                         comment,
-                        translationService.translate(
-                                comment.getContent(),
-                                comment.getLanguage(),
-                                targetLanguage
-                        )
+                        getOrTranslateContent(comment, targetLanguage)
                 ))
                 .toList();
     }
+
 
 
     @Transactional
@@ -93,4 +96,47 @@ public class CommentService {
             throw new RestApiException(ErrorCode.FORBIDDEN);
         }
     }
+
+    private String getOrTranslateContent(CommentEntity comment, String targetLanguage) {
+        if (comment.getLanguage().equals(targetLanguage)) {
+            return comment.getContent();
+        }
+
+        Map<String, String> contentMap = readTranslations(comment.getTranslatedContent());
+
+        if (contentMap.containsKey(targetLanguage)) {
+            return contentMap.get(targetLanguage);
+        }
+
+        String translatedContent = translationService.translate(
+                comment.getContent(),
+                comment.getLanguage(),
+                targetLanguage
+        );
+
+        contentMap.put(targetLanguage, translatedContent);
+        comment.setTranslatedContent(writeTranslations(contentMap));
+
+        return translatedContent;
+    }
+
+    private Map<String, String> readTranslations(String json) {
+        try {
+            if (json == null || json.isBlank()) {
+                return new HashMap<>();
+            }
+            return objectMapper.readValue(json, new TypeReference<>() {});
+        } catch (Exception e) {
+            return new HashMap<>();
+        }
+    }
+
+    private String writeTranslations(Map<String, String> translations) {
+        try {
+            return objectMapper.writeValueAsString(translations);
+        } catch (Exception e) {
+            throw new RestApiException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 }
