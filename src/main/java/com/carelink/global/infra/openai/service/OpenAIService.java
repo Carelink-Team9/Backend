@@ -114,8 +114,11 @@ public class OpenAIService {
                     "   - Example: '콩코르정2.5mg 용량 조절(titration) 0.5 T 1 140 70 T' → '콩코르정2.5mg'\n" +
                     "   - Example: '리피토정 10mg -- 이하여백 -- 1 T 1 140 140 T' → '리피토정10mg'\n" +
                     "   - Example: '크리맥액(돔페리돈) 1 3 2' → '크리맥액'\n" +
-                    "2. 'originalName': Exact name as it appears in the prescription including any annotation.\n" +
-                    "3. 'dosage': Amount per dose extracted from the prescription (e.g., '500mg', '1정'). " +
+                    "   - Example: '펙수클루정 40mg 1 T 1 140 140 T' → '펙수클루정40mg'\n" +
+                    "   - Example: '트리진정20mg 280 T' → '트리진정20mg'\n" +
+                    "2. 'originalName': The drug name portion only as it literally appears in the OCR text — stop before any standalone digit/quantity/unit sequence. Do NOT include dosing numbers like '1 T 1 140 140 T'. Example: '펙수클루정 40mg 1 T 1 140 140 T' → originalName is '펙수클루정 40mg'.\n" +
+                    "3. 'dosage': Amount per dose extracted from the prescription. Extract the numeric value and translate unit terms to %s (e.g., '정'→tablet/錠/片/viên/เม็ด/tabletkasi, '캡슐'→capsule). " +
+                    "Example: '1정' in English → '1 tablet', '0.5정' in Japanese → '0.5錠', '500mg' stays as '500mg'. " +
                     "If the drug name had a parenthetical like (1/정) or (2정), extract that as the dosage here.\n" +
                     "4. 'frequency': Dosing schedule from the prescription. Translate to %s (e.g., if Korean says '1일 3회 식후 30분', write the equivalent in %s).\n" +
                     "5. 'duration': Duration from the prescription. Translate to %s (e.g., if Korean says '7일분', write the equivalent in %s).\n" +
@@ -127,7 +130,7 @@ public class OpenAIService {
                     "Return ONLY a valid JSON array — no markdown fences, no extra text:\n" +
                     "[{\"drugName\":\"...\",\"originalName\":\"...\",\"dosage\":\"...\",\"frequency\":\"...\",\"duration\":\"...\",\"translatedContent\":\"...\",\"sideEffects\":\"...\",\"precautions\":\"...\",\"foodInteraction\":\"...\",\"handwrittenNote\":null}]\n\n" +
                     "Prescription OCR text:\n%s",
-                    langName, langName, langName, langName, langName, langName, langName, langName, extractedText
+                    langName, langName, langName, langName, langName, langName, langName, langName, langName, extractedText
             );
 
             ChatRequest request = new ChatRequest("gpt-4o", List.of(
