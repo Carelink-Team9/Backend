@@ -8,6 +8,8 @@ import com.carelink.communityPost.service.CommunityPostService;
 import com.carelink.global.annotation.CurrentUserId;
 import com.carelink.global.response.ApiResponse;
 import com.carelink.global.type.ResponseMessage;
+import com.carelink.user.entity.UserEntity;
+import com.carelink.user.repository.UserRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,13 @@ import java.util.List;
 public class CommunityPostController {
 
     private final CommunityPostService communityPostService;
+    private final UserRepository userRepository;
+
+    private String getUserLanguage(Long userId) {
+        return userRepository.findById(userId)
+                .map(UserEntity::getLanguage)
+                .orElse("ko");
+    }
 
     @PostMapping
     public ResponseEntity<ApiResponse<CommunityPostResponse>> create(
@@ -34,32 +43,32 @@ public class CommunityPostController {
 
     @GetMapping("/{postId}")
     public ResponseEntity<ApiResponse<CommunityPostResponse>> getById(
-            @PathVariable Long postId,
-            @RequestParam String targetLanguage
+            @CurrentUserId Long userId,
+            @PathVariable Long postId
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
-                communityPostService.getById(postId, targetLanguage)
+                communityPostService.getById(postId, getUserLanguage(userId))
         ));
     }
 
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<List<CommunityPostResponse>>> getByTag(
-            @RequestParam String tag,
-            @RequestParam String targetLanguage
+            @CurrentUserId Long userId,
+            @RequestParam String tag
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
-                communityPostService.getByTag(tag, targetLanguage)
+                communityPostService.getByTag(tag, getUserLanguage(userId))
         ));
     }
 
 
     @GetMapping("/filter/language")
     public ResponseEntity<ApiResponse<List<CommunityPostResponse>>> getByLanguage(
-            @RequestParam String language,
-            @RequestParam String targetLanguage
+            @CurrentUserId Long userId,
+            @RequestParam String language
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
-                communityPostService.getByLanguage(language, targetLanguage)
+                communityPostService.getByLanguage(language, getUserLanguage(userId))
         ));
     }
 
@@ -86,32 +95,32 @@ public class CommunityPostController {
 
     @GetMapping("list")
     public ResponseEntity<ApiResponse<List<CommunityPostResponse>>> getAllPosts(
-            @RequestParam String targetLanguage
+            @CurrentUserId Long userId
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
-                communityPostService.getAllPosts(targetLanguage)
+                communityPostService.getAllPosts(getUserLanguage(userId))
         ));
     }
 
     //제목 / 내용 검색
     @GetMapping("/search/keyword")
     public ResponseEntity<ApiResponse<List<CommunityPostResponse>>> searchByKeyword(
-            @RequestParam String keyword,
-            @RequestParam String targetLanguage
+            @CurrentUserId Long userId,
+            @RequestParam String keyword
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
-                communityPostService.searchByKeyword(keyword, targetLanguage)
+                communityPostService.searchByKeyword(keyword, getUserLanguage(userId))
         ));
     }
 
     // 카테고리별 검색
     @GetMapping("/filter/category")
     public ResponseEntity<ApiResponse<List<CommunityPostResponse>>> getByCategory(
-            @RequestParam CommunityPostCategory category,
-            @RequestParam String targetLanguage
+            @CurrentUserId Long userId,
+            @RequestParam CommunityPostCategory category
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
-                communityPostService.getByCategory(category, targetLanguage)
+                communityPostService.getByCategory(category, getUserLanguage(userId))
         ));
     }
 

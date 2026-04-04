@@ -42,7 +42,7 @@ public class CommunityPostService {
                 .user(user)
                 .title(request.getTitle())
                 .content(request.getContent())
-                .language(request.getLanguage())
+                .language(user.getLanguage())
                 .tag(request.getTag())
                 .category(request.getCategory())
                 .build();
@@ -106,7 +106,6 @@ public class CommunityPostService {
 
         post.setTitle(request.getTitle());
         post.setContent(request.getContent());
-        post.setLanguage(request.getLanguage());
         post.setTag(request.getTag());
         post.setCategory(request.getCategory());
         post.setTranslatedTitle(null);

@@ -94,9 +94,12 @@ public class OpenAIService {
                     "- Use your pharmacological knowledge to provide sideEffects, precautions, foodInteraction even if not in the text.\n" +
                     "- If a value is truly unknown or not applicable, use null.\n\n" +
                     "For each drug, extract these fields:\n" +
-                    "1. 'drugName': Clean Korean drug name for DB search (strip circled numbers/symbols).\n" +
+                    "1. 'drugName': Clean Korean drug name only — NO dosage, NO parentheses, NO slashes, NO numbers after the name. " +
+                    "Strip ALL of the following: circled numbers/symbols, parenthetical expressions like (1/정) (2정) (0.5정), " +
+                    "slash-separated values, and any trailing quantity notation. Example: '라베피아정10밀리그램 ( 1 / 정 )' → '라베피아정10밀리그램'.\n" +
                     "2. 'originalName': Exact name as it appears in the prescription including any annotation.\n" +
-                    "3. 'dosage': Amount per dose (e.g., '500mg', '1정', '2캡슐'). Use handwritten number if present.\n" +
+                    "3. 'dosage': Amount per dose (e.g., '500mg', '1정', '2캡슐'). " +
+                    "If the drug name had a parenthetical like (1/정) or (2정), extract that as the dosage here.\n" +
                     "4. 'frequency': Full schedule in Korean (e.g., '1일 3회 식후 30분').\n" +
                     "5. 'duration': Duration in Korean (e.g., '3일분', '7일').\n" +
                     "6. 'translatedContent': 1–2 sentence plain explanation of this drug's purpose in %s.\n" +

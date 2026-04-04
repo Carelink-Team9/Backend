@@ -46,7 +46,7 @@ public class CommentService {
                 .user(user)
                 .communityPost(post)
                 .content(request.getContent())
-                .language(request.getLanguage())
+                .language(user.getLanguage())
                 .build();
 
         CommentEntity savedComment = commentRepository.save(comment);

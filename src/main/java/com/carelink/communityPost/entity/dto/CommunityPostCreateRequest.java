@@ -14,9 +14,6 @@ public class CommunityPostCreateRequest {
     @NotBlank
     private String content;
 
-    @NotBlank
-    private String language;
-
     private String tag;
 
     @NotNull

@@ -8,7 +8,4 @@ public class CommentCreateRequest {
 
     @NotBlank
     private String content;
-
-    @NotBlank
-    private String language;
 }

@@ -7,6 +7,8 @@ import com.carelink.comment.entity.service.CommentService;
 import com.carelink.global.annotation.CurrentUserId;
 import com.carelink.global.response.ApiResponse;
 import com.carelink.global.type.ResponseMessage;
+import com.carelink.user.entity.UserEntity;
+import com.carelink.user.repository.UserRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +21,13 @@ import java.util.List;
 public class CommentController {
 
     private final CommentService commentService;
+    private final UserRepository userRepository;
+
+    private String getUserLanguage(Long userId) {
+        return userRepository.findById(userId)
+                .map(UserEntity::getLanguage)
+                .orElse("ko");
+    }
 
     @PostMapping("/api/community/posts/{postId}/comments")
     public ResponseEntity<ApiResponse<CommentResponse>> create(
@@ -33,11 +42,11 @@ public class CommentController {
 
     @GetMapping("/api/community/posts/{postId}/comments")
     public ResponseEntity<ApiResponse<List<CommentResponse>>> getByPostId(
-            @PathVariable Long postId,
-            @RequestParam String targetLanguage
+            @CurrentUserId Long userId,
+            @PathVariable Long postId
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
-                commentService.getByPostId(postId, targetLanguage)
+                commentService.getByPostId(postId, getUserLanguage(userId))
         ));
     }
 
