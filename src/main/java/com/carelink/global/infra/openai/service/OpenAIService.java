@@ -13,8 +13,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -26,9 +24,6 @@ public class OpenAIService {
     private final OpenAIClient openAIClient;
     private final UpstageOcrClient upstageOcrClient;
     private final ObjectMapper objectMapper;
-
-    @Value("${file.upload-dir}")
-    private String uploadDir;
 
     public record ParsedDrug(
             String drugName,
@@ -84,12 +79,10 @@ public class OpenAIService {
     /**
      * 2. 처방전 이미지 분석 (Upstage OCR → GPT 파싱)
      */
-    public List<ParsedDrug> parsePrescriptionImage(String imageRelativePath, String targetLanguage) {
+    public List<ParsedDrug> parsePrescriptionImage(byte[] imageBytes, String fileName, String targetLanguage) {
         try {
-            // Step 1: Upstage OCR로 텍스트 추출
-            String fileName = imageRelativePath.substring(imageRelativePath.lastIndexOf("/") + 1);
-            Path imagePath = Paths.get(uploadDir).toAbsolutePath().normalize().resolve(fileName);
-            String extractedText = upstageOcrClient.extractText(imagePath);
+            // Step 1: Upstage OCR로 텍스트 추출 (디스크 경유 없이 바이트 직접 전달)
+            String extractedText = upstageOcrClient.extractText(imageBytes, fileName);
 
             if (extractedText == null || extractedText.isBlank()) {
                 log.warn("OCR 추출 텍스트가 비어있습니다. 빈 결과 반환.");
@@ -113,12 +106,19 @@ public class OpenAIService {
                     "- If a value is truly unknown or not applicable, use null.\n\n" +
                     "For each drug, extract these fields:\n" +
                     "1. 'drugName': Clean Korean brand/product name only. Rules:\n" +
-                    "   - If the drug appears as 'BrandName(GenericName)', use the BRAND name before the parenthesis, NOT the generic inside. Example: '크리맥액(돔페리돈)' → '크리맥액'\n" +
-                    "   - Strip ALL of the following from the name: circled numbers/symbols (①②③), standalone digits or digit sequences (1 3 2), parenthetical dosage expressions like (1/정)(2정)(0.5정), slash-separated values, and any trailing quantity notation.\n" +
-                    "   - Example: '라베피아정10밀리그램 ( 1 / 정 )' → '라베피아정10밀리그램'\n" +
+                    "   - The drug name is the Korean product/brand name including its strength (e.g., '엘리퀴스정2.5mg', '리피토정10mg'). Stop at the first token that is NOT part of the drug name.\n" +
+                    "   - If the drug appears as 'BrandName(GenericName)', use the BRAND name before the parenthesis. Example: '크리맥액(돔페리돈)' → '크리맥액'\n" +
+                    "   - Strip ALL of the following: circled numbers/symbols (①②③), controlled-substance markers like (향정)(향)(마), standalone digits and digit sequences, unit tokens like T/정/캡슐/ml, quantity/day counts (e.g., '1 T 2 140 280 T'), prescription-end markers ('-- 이하여백 --', '이하여백'), clinical notes after the name (e.g., '용량 조절(titration)', '용량조절'), slash-separated values, and any trailing annotation.\n" +
+                    "   - Example: '엘리퀴스정2.5mg 1 T 2 140 280 T' → '엘리퀴스정2.5mg'\n" +
+                    "   - Example: '자나팜정0.25mg(향정) 1 T 140' → '자나팜정0.25mg'\n" +
+                    "   - Example: '콩코르정2.5mg 용량 조절(titration) 0.5 T 1 140 70 T' → '콩코르정2.5mg'\n" +
+                    "   - Example: '리피토정 10mg -- 이하여백 -- 1 T 1 140 140 T' → '리피토정10mg'\n" +
                     "   - Example: '크리맥액(돔페리돈) 1 3 2' → '크리맥액'\n" +
-                    "2. 'originalName': Exact name as it appears in the prescription including any annotation.\n" +
-                    "3. 'dosage': Amount per dose extracted from the prescription (e.g., '500mg', '1정'). " +
+                    "   - Example: '펙수클루정 40mg 1 T 1 140 140 T' → '펙수클루정40mg'\n" +
+                    "   - Example: '트리진정20mg 280 T' → '트리진정20mg'\n" +
+                    "2. 'originalName': The drug name portion only as it literally appears in the OCR text — stop before any standalone digit/quantity/unit sequence. Do NOT include dosing numbers like '1 T 1 140 140 T'. Example: '펙수클루정 40mg 1 T 1 140 140 T' → originalName is '펙수클루정 40mg'.\n" +
+                    "3. 'dosage': Amount per dose extracted from the prescription. Extract the numeric value and translate unit terms to %s (e.g., '정'→tablet/錠/片/viên/เม็ด/tabletkasi, '캡슐'→capsule). " +
+                    "Example: '1정' in English → '1 tablet', '0.5정' in Japanese → '0.5錠', '500mg' stays as '500mg'. " +
                     "If the drug name had a parenthetical like (1/정) or (2정), extract that as the dosage here.\n" +
                     "4. 'frequency': Dosing schedule from the prescription. Translate to %s (e.g., if Korean says '1일 3회 식후 30분', write the equivalent in %s).\n" +
                     "5. 'duration': Duration from the prescription. Translate to %s (e.g., if Korean says '7일분', write the equivalent in %s).\n" +
@@ -130,7 +130,7 @@ public class OpenAIService {
                     "Return ONLY a valid JSON array — no markdown fences, no extra text:\n" +
                     "[{\"drugName\":\"...\",\"originalName\":\"...\",\"dosage\":\"...\",\"frequency\":\"...\",\"duration\":\"...\",\"translatedContent\":\"...\",\"sideEffects\":\"...\",\"precautions\":\"...\",\"foodInteraction\":\"...\",\"handwrittenNote\":null}]\n\n" +
                     "Prescription OCR text:\n%s",
-                    langName, langName, langName, langName, langName, langName, langName, langName, extractedText
+                    langName, langName, langName, langName, langName, langName, langName, langName, langName, extractedText
             );
 
             ChatRequest request = new ChatRequest("gpt-4o", List.of(
@@ -214,13 +214,38 @@ public class OpenAIService {
     public String getPrescriptionChatAnswer(String userMessage, String drugContext, String targetLanguage) {
         try {
             String langName = toLanguageName(targetLanguage);
-            String systemMessage = String.format(
-                    "You are a professional and kind pharmacist assistant for 'CareLink'. " +
-                            "Answer the user's question ONLY based on the following prescription drug information: [%s]. " +
-                            "If the question is not about these drugs, kindly ask them to stay on topic. " +
-                            "Provide the answer in %s.",
-                    drugContext, langName
-            );
+
+            String systemMessage = String.format("""
+You are CareLink's professional, careful, and kind pharmacist assistant.
+
+Your job is to answer the user's question using the prescription drug information provided below.
+Drug information:
+[%s]
+
+Rules:
+1. Answer in %s.
+2. Be specific, practical, and easy for a patient to understand.
+3. If the question is related to the listed medicines, answer as helpfully as possible based on the provided drug information.
+4. If the provided drug information is not enough to fully answer, do NOT simply refuse.
+   Instead:
+   - first explain what can be answered from the available information,
+   - then clearly say what information is missing,
+   - then recommend checking with a pharmacist or doctor if needed.
+5. If the user asks whether the medicines can be taken together, about side effects, timing, precautions, storage, missed doses, or how to take them, treat that as on-topic if it relates to the listed medicines.
+6. Only say the question is off-topic when it is clearly unrelated to the listed medicines.
+7. Never invent facts that are not supported by the provided drug information.
+8. When appropriate, organize the answer with these sections:
+   - Summary
+   - Important points
+   - When to be careful
+9. Keep a warm and reassuring tone, but remain medically cautious.
+10. If there is a safety concern, state it clearly and recommend professional medical advice.
+
+Answer style:
+- Prefer 3 to 6 sentences.
+- Use bullet points when they improve readability.
+- Avoid overly short refusals.
+""", drugContext, langName);
 
             ChatRequest request = new ChatRequest("gpt-4o-mini", List.of(
                     new ChatRequest.Message("system", systemMessage),
@@ -234,5 +259,6 @@ public class OpenAIService {
             return "죄송합니다. 답변을 생성하는 중 오류가 발생했습니다.";
         }
     }
+
 
 }

@@ -80,10 +80,13 @@ jobs:
               docker run -d --name carelink-redis --network carelink_network -p 6379:6379 redis:7.2 redis-server --appendonly yes || true
             fi
 
+            mkdir -p /home/${{ secrets.EC2_USER }}/uploads/prescriptions
+
             docker run -d \
               --name carelink-app \
               --network carelink_network \
-              -p 80:8080 \
+              -p 8080:8080 \
+              -v /home/${{ secrets.EC2_USER }}/uploads:/app/uploads \
               -e SPRING_DATASOURCE_URL="${{ secrets.SPRING_DATASOURCE_URL }}" \
               -e SPRING_DATASOURCE_USERNAME="${{ secrets.SPRING_DATASOURCE_USERNAME }}" \
               -e SPRING_DATASOURCE_PASSWORD="${{ secrets.SPRING_DATASOURCE_PASSWORD }}" \

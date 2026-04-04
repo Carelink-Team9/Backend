@@ -67,9 +67,17 @@ public class PrescriptionChatController {
         String drugContext = drugs.stream()
                 .map(d -> {
                     String name = d.getDrug() != null ? d.getDrug().getName() : d.getOriginalName();
-                    return name + ": " + d.getTranslatedContent();
+                    StringBuilder sb = new StringBuilder(name);
+                    if (d.getDosage() != null) sb.append(", dosage: ").append(d.getDosage());
+                    if (d.getFrequency() != null) sb.append(", frequency: ").append(d.getFrequency());
+                    if (d.getDuration() != null) sb.append(", duration: ").append(d.getDuration());
+                    if (d.getTranslatedContent() != null) sb.append(", description: ").append(d.getTranslatedContent());
+                    if (d.getSideEffects() != null) sb.append(", sideEffects: ").append(d.getSideEffects());
+                    if (d.getPrecautions() != null) sb.append(", precautions: ").append(d.getPrecautions());
+                    if (d.getFoodInteraction() != null) sb.append(", foodInteraction: ").append(d.getFoodInteraction());
+                    return sb.toString();
                 })
-                .collect(Collectors.joining(", "));
+                .collect(Collectors.joining(" | "));
 
         // 유저 언어 설정 가져오기
         UserEntity user = userRepository.findById(userId).orElseThrow();

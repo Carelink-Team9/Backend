@@ -12,8 +12,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 @Slf4j
 @Component
@@ -32,9 +30,7 @@ public class UpstageOcrClient {
     /**
      * 이미지 파일을 Upstage Document Parse API에 전송하여 텍스트를 추출합니다.
      */
-    public String extractText(Path imagePath) throws Exception {
-        byte[] fileBytes = Files.readAllBytes(imagePath);
-        String fileName = imagePath.getFileName().toString();
+    public String extractText(byte[] fileBytes, String fileName) throws Exception {
 
         ByteArrayResource fileResource = new ByteArrayResource(fileBytes) {
             @Override
