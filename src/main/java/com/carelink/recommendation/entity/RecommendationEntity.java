@@ -28,19 +28,19 @@ public class RecommendationEntity {
     private UserEntity user;
 
     @Column(name = "symptoms", columnDefinition = "TEXT")
-    private String symptoms; // 입력받은 증상 리스트 (JSON이나 콤마 구분자)
+    private String symptoms; // 이제 "배가 아파요" 같은 문장 데이터가 들어옵니다.
 
-    @Column(name = "recommended_dept")
-    private String recommendedDept;
+    @Column(name = "recommended_dept_ko")
+    private String recommendedDeptKo; // 추천 진료과 (한국어)
+
+    @Column(name = "recommended_dept_tr")
+    private String recommendedDeptTr; // 추천 진료과 (번역본)
+
+    @Column(name = "doctor_summary", columnDefinition = "TEXT")
+    private String doctorSummary; // [추가] 의사에게 전달할 한국어 증상 요약 리포트
 
     @Column(name = "confidence")
     private Integer confidence;
-
-    @Column(name = "recommended_dept_ko")
-    private String recommendedDeptKo;
-
-    @Column(name = "recommended_dept_tr")
-    private String recommendedDeptTr;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)

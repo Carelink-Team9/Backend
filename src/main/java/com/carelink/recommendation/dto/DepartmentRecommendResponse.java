@@ -16,7 +16,9 @@ public class DepartmentRecommendResponse {
     private int mainConfidence;
 
     private String reason;                   // 한국어 추천 이유
-    private String translatedReason;         // 번역된 추천 이유
+    private String translatedReason;
+
+    private String doctorSummary; // <-- 신규 추가: 의사에게 전달할 한국어 요약// 번역된 추천 이유
 
     private List<AlternativeDept> alternatives;
 
